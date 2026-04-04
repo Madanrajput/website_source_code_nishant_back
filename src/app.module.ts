@@ -39,7 +39,11 @@ import { LookMenuModule } from './look_menu/look_menu.module';
 import { JobApplicationModule } from './job_application/job_application.module';
 import { FooterLinkModule } from './footer_link/footer_link.module';
 import { SeoTagModule } from './seo_tag/seo_tag.module';
+
+import { CmsPagesModule } from './cms-pages/cms-pages.module';
 import configuration from './config/configuration';
+import { RedirectsModule } from './redirects/redirects.module';
+import { SiteSettingsModule } from './site-settings/site-settings.module';
 
 @Module({
   imports: [
@@ -85,6 +89,10 @@ import configuration from './config/configuration';
     LookMenuModule,
     FooterLinkModule,
     SeoTagModule,
+
+    CmsPagesModule,
+    RedirectsModule,
+    SiteSettingsModule
   ],
   })
 export class AppModule {}

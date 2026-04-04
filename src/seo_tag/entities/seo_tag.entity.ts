@@ -17,9 +17,16 @@ export class SeoTag {
     @Column()
     meta_can_tag: string;
 
-    @Column()
+    @Column({ nullable: true })
     meta_image: string;
 
+    // --- NEW FIELDS ---
+    @Column({ nullable: true, default: 'index, follow' })
+    meta_robots: string;
+
+    @Column({ nullable: true })
+    og_image: string;
+    // ------------------
   
     @Column({
         type: 'enum',

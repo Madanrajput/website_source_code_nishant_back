@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCmsParentChildDto } from './dto/create-cms_parent_child.dto';
-import { UpdateCmsParentChildDto } from './dto/update-cms_parent_child.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CmsParentChild, PageType } from './entities/cms_parent_child.entity';
 import { Repository } from 'typeorm';
 import { basename } from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class CmsParentChildService {
@@ -13,11 +14,129 @@ export class CmsParentChildService {
     @InjectRepository(CmsParentChild)
     private readonly cmsParentChildRepository: Repository<CmsParentChild>,
   ) {}
+
+
+  // --- MAGIC CLONING SCRIPT: Gurugram to Faridabad ---
+  // async duplicateGurugramToFaridabad() {
+  //   // 1. Fetch all existing Gurugram records (Pages and Videos)
+  //   const gurugramPages = await this.cmsParentChildRepository.find({ 
+  //     where: { page_type: PageType.EXPERIENCE_CENTER_GURUGRAM } 
+  //   });
+  //   const gurugramVideos = await this.cmsParentChildRepository.find({ 
+  //     where: { page_type: PageType.EXPERIENCE_CENTER_GURUGRAM_VIDEO } 
+  //   });
+
+  //   if (gurugramPages.length === 0 && gurugramVideos.length === 0) {
+  //     return { message: "No Gurugram records found to copy!" };
+  //   }
+
+  //   // 2. Clone the pages, stripping the old IDs and changing the page_type
+  //   const newFaridabadPages = gurugramPages.map(record => {
+  //     return this.cmsParentChildRepository.create({
+  //       page_type: PageType.EXPERIENCE_CENTER_FARIDABAD,
+  //       child_content: record.child_content,
+  //       child_images: record.child_images
+  //     });
+  //   });
+
+  //   // 3. Clone the videos
+  //   const newFaridabadVideos = gurugramVideos.map(record => {
+  //     return this.cmsParentChildRepository.create({
+  //       page_type: PageType.EXPERIENCE_CENTER_FARIDABAD_VIDEO,
+  //       child_content: record.child_content,
+  //       child_images: record.child_images
+  //     });
+  //   });
+
+  //   // 4. Save everything to the database as brand new Faridabad records
+  //   await this.cmsParentChildRepository.save([...newFaridabadPages, ...newFaridabadVideos]);
+
+  //   return { 
+  //     message: "Success! Gurugram data has been fully cloned to Faridabad.",
+  //     pagesCopied: newFaridabadPages.length,
+  //     videosCopied: newFaridabadVideos.length
+  //   };
+  // }
+
+  // --- FIXED: Retrieve all images for Media Library ---
+  async getAllMedia() {
+    // Attempt 1: Standard project root
+    let uploadDir = path.join(process.cwd(), 'uploads', 'parent-child');
+    
+    // Attempt 2: If running from inside /dist, step back up to the root folder
+    if (!fs.existsSync(uploadDir)) {
+      uploadDir = path.resolve(__dirname, '..', '..', 'uploads', 'parent-child');
+    }
+
+    // Attempt 3: Absolute fallback (specifically for your local Windows machine)
+    if (!fs.existsSync(uploadDir)) {
+       uploadDir = 'C:\\Projects\\hcinterior_backend\\uploads\\parent-child';
+    }
+
+    // DEBUGGING: This will print in your NestJS terminal so you can see exactly what is happening
+    console.log("Media Library is looking for images inside:", uploadDir);
+
+    // If directory still doesn't exist, return empty array
+    if (!fs.existsSync(uploadDir)) {
+      console.warn("WARNING: Upload directory not found!");
+      return [];
+    }
+
+    try {
+      const files = fs.readdirSync(uploadDir);
+      
+      // Fallback to localhost if BASE_URL is not set in your .env file
+      const baseUrl = process.env.BASE_URL 
+        ? `${process.env.BASE_URL}/uploads/parent-child/`
+        : `http://localhost:8000/uploads/parent-child/`; 
+      
+      return files
+        .filter(file => file !== '.gitkeep' && !file.startsWith('.')) // Ignore hidden files
+        .map(file => {
+          const stats = fs.statSync(path.join(uploadDir, file));
+          return {
+            filename: file,
+            url: `${baseUrl}${file}`,
+            size_bytes: stats.size,
+            created_at: stats.birthtime,
+          };
+        })
+        .sort((a, b) => b.created_at.getTime() - a.created_at.getTime()); // Newest first
+
+    } catch (err) {
+      console.error("Error reading media directory:", err);
+      return [];
+    }
+  }
+
+  // --- Replace image without URL change ---
+  async replaceExistingImage(targetFilename: string, newFile: Express.Multer.File) {
+    let uploadDir = path.join(process.cwd(), 'uploads', 'parent-child');
+    if (!fs.existsSync(uploadDir)) {
+      uploadDir = path.resolve(__dirname, '..', '..', 'uploads', 'parent-child');
+    }
+
+    const targetPath = path.join(uploadDir, targetFilename);
+    
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    // Overwrite the existing file with the new file
+    fs.renameSync(newFile.path, targetPath);
+
+    const baseUrl = process.env.BASE_URL || `http://localhost:8000`;
+
+    return { 
+      message: 'Image successfully replaced. Existing URL remains active.',
+      filename: targetFilename,
+      url: `${baseUrl}/uploads/parent-child/${targetFilename}`
+    };
+  }
   
   async create(createCmsParentChildDto: CreateCmsParentChildDto): Promise<CmsParentChild> {
     const imagePath = createCmsParentChildDto.image ? basename(createCmsParentChildDto.image) : 'default.png';
 
-    // Determine the number of default images based on page_type
     const defaultImageCount = 
       createCmsParentChildDto.page_type === 'experience_center' || 
       createCmsParentChildDto.page_type === 'experience_center_gurugram' 
@@ -33,22 +152,17 @@ export class CmsParentChildService {
         description: createCmsParentChildDto.description,
         image: imagePath,
       },
-      child_images: childImages, // Assign the dynamic number of default images
+      child_images: childImages, 
     };
-
-    console.log('Create Data:', createData);
 
     try {
       const result = await this.cmsParentChildRepository.save(createData);
-      console.log('Save Result:', result);
       return result;
     } catch (error) {
       console.error('Error Saving Data:', error);
       throw error;
     }
-}
-
-
+  }
 
   findAll() {
     return this.cmsParentChildRepository.find();
@@ -119,7 +233,7 @@ export class CmsParentChildService {
     const childContent = existingRecord.child_content;
 
     if (updateData.image) {
-      const imageName = basename(updateData.image); // Extract the filename from the path
+      const imageName = basename(updateData.image); 
       childContent.image = imageName;
     }
 
@@ -145,13 +259,11 @@ export class CmsParentChildService {
     const childImages = existingRecord.child_images[childImageIndex];
 
     if (imagePath) {
-      const imageName = basename(imagePath); // Extract the filename from the path
+      const imageName = basename(imagePath); 
       childImages.image = imageName;
     }
 
     existingRecord.child_images[childImageIndex] = childImages;
-
-    console.log('existingRecord', existingRecord);
 
     await this.cmsParentChildRepository.save(existingRecord);
     return this.cmsParentChildRepository.findOne({ where: { id } });

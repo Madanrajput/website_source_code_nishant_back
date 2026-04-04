@@ -1,15 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, BadRequestException, Req } from '@nestjs/common';
 import { CmsParentChildService } from './cms_parent_child.service';
 import { CreateCmsParentChildDto } from './dto/create-cms_parent_child.dto';
 import { UpdateCmsParentChildDto } from './dto/update-cms_parent_child.dto';
 import { PageType } from './entities/cms_parent_child.entity';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { BadRequestException, Req } from '@nestjs/common';
 import { Request } from 'express';
+
 @Controller('cms-parent-child')
 export class CmsParentChildController {
   constructor(private readonly cmsParentChildService: CmsParentChildService) {}
-  // inside CmsParentChildController:
+
   @Post('upload-image')
   @UseInterceptors(FileInterceptor('image'))
   uploadImageOnly(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
@@ -19,6 +19,29 @@ export class CmsParentChildController {
   
     const imageUrl = `${req.protocol}://${req.get('host')}/uploads/parent-child/${file.filename}`;
     return { filename: file.filename, url: imageUrl };
+  }
+
+  //  @Get('clone-gurugram-to-faridabad')
+  // cloneData() {
+  //   return this.cmsParentChildService.duplicateGurugramToFaridabad();
+  // }
+  // --- NEW: Media Library Endpoint ---
+  @Get('media-library')
+  getMediaLibrary() {
+    return this.cmsParentChildService.getAllMedia();
+  }
+
+  // --- NEW: Image Replacement Without URL Change ---
+  @Post('replace-image/:filename')
+  @UseInterceptors(FileInterceptor('image'))
+  replaceImage(
+    @Param('filename') targetFilename: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No new file uploaded for replacement');
+    }
+    return this.cmsParentChildService.replaceExistingImage(targetFilename, file);
   }
 
   @Post()
@@ -47,7 +70,6 @@ export class CmsParentChildController {
     return this.cmsParentChildService.findAllByPageType(page_type);
   }
 
-  //get data by id
   @Get('by-id/:id')
   findById(@Param('id') id: string) {
     return this.cmsParentChildService.findById(+id);
@@ -81,10 +103,11 @@ export class CmsParentChildController {
     return this.cmsParentChildService.updateChildImage(+id, childImageIndex, imagePath);
   }
 
-
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.cmsParentChildService.remove(+id);
   }
 
+  // --- MAGIC CLONE ENDPOINT ---
+ 
 }

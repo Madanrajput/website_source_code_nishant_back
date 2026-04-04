@@ -16,6 +16,8 @@ export enum PageType {
     EXPERIENCE_CENTER_VIDEO = 'experience_center_video',
     EXPERIENCE_CENTER_GURUGRAM = 'experience_center_gurugram',
     EXPERIENCE_CENTER_GURUGRAM_VIDEO = 'experience_center_gurugram_video',
+    EXPERIENCE_CENTER_FARIDABAD = 'experience_center_faridabad',
+    EXPERIENCE_CENTER_FARIDABAD_VIDEO = 'experience_center_faridabad_video',
     PRODUCT = 'product',
 }
 
