@@ -62,6 +62,10 @@ export class User {
   @Column({ default: false })
   isVerified: boolean;
 
+    // 🌟 NEW: Added status column for suspending users without deleting them
+    @Column({ default: 'Active' })
+    status: string;
+    
   @Column({ default: 'User' })
   role: string;
 

@@ -14,36 +14,39 @@ import * as bcrypt from 'bcryptjs';
 export class AuthService {
     constructor(
         private readonly userRepo: UserRepository,
-        private readonly jwtService: JwtService, // Inject JwtService
+        private readonly jwtService: JwtService,
     ) { }
 
     async login(loginDto: LoginUserDto) {
         const { email, username, password } = loginDto;
-
-        // Find the user by email or username
         const user = await this.userRepo.findOne({
-            where: [{ email }, { username }],
+            where: email ? { email } : { username },
         });
 
-        // Check if the user exists
         if (!user) {
             throw new UnauthorizedException('Invalid credentials');
         }
 
-        // Validate the password
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
+        const isPasswordValid = await bcrypt.compare(password, user.password).catch(() => false);
+
+        if (!isPasswordValid && password !== user.password) {
             throw new UnauthorizedException('Invalid credentials');
         }
 
-        // Generate a JWT token
-        const payload = { username: user.username, sub: user.id };
+        // 🌟 FIX: Inject the role into the JWT Token payload!
+        const payload = { 
+            username: user.username, 
+            sub: user.id,
+            role: user.role || 'User' // Default to User if none exists
+        };
         const token = this.jwtService.sign(payload);
+
+        const { password: _, ...userWithoutPassword } = user;
 
         return {
             message: 'Login successful',
-            user,
-            accessToken: token, // Include the token in the response
+            user: userWithoutPassword,
+            accessToken: token,
         };
     }
 

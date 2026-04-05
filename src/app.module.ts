@@ -44,6 +44,7 @@ import { CmsPagesModule } from './cms-pages/cms-pages.module';
 import configuration from './config/configuration';
 import { RedirectsModule } from './redirects/redirects.module';
 import { SiteSettingsModule } from './site-settings/site-settings.module';
+import { CmsUsersModule } from './cms-users/cms-users.module';
 
 @Module({
   imports: [
@@ -92,7 +93,8 @@ import { SiteSettingsModule } from './site-settings/site-settings.module';
 
     CmsPagesModule,
     RedirectsModule,
-    SiteSettingsModule
+    SiteSettingsModule,
+    CmsUsersModule
   ],
   })
 export class AppModule {}

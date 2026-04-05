@@ -11,8 +11,18 @@ export class CmsPagesService {
         private readonly cmsPageRepository: Repository<CmsPage>,
     ) {}
 
-    async create(createCmsPageDto: CreateCmsPageDto) {
-        const newPage = this.cmsPageRepository.create(createCmsPageDto);
+    // 🌟 Added 'user' parameter to check roles
+    async create(createCmsPageDto: CreateCmsPageDto, user?: any) {
+        let safeDto = { ...createCmsPageDto };
+
+        // 🔒 WORKFLOW ENFORCEMENT: Editors cannot publish directly
+        if (user && user.role === 'Editor') {
+            if (safeDto.status === 'Published') {
+                safeDto.status = 'Pending Approval';
+            }
+        }
+
+        const newPage = this.cmsPageRepository.create(safeDto);
         return await this.cmsPageRepository.save(newPage);
     }
 
@@ -24,13 +34,25 @@ export class CmsPagesService {
 
     async findOne(id: number) {
         const page = await this.cmsPageRepository.findOne({ where: { id } });
-        if (!page) throw new NotFoundException(`Page with ID ${id} not found`);
+        if (!page) {
+            throw new NotFoundException(`Page with ID ${id} not found`);
+        }
         return page;
     }
 
-    async update(id: number, updateData: any) {
+    // 🌟 Added 'user' parameter to check roles
+    async update(id: number, updateData: any, user?: any) {
         const page = await this.findOne(id);
-        Object.assign(page, updateData);
+        let safeUpdateData = { ...updateData };
+
+        // 🔒 WORKFLOW ENFORCEMENT: Editors cannot publish directly
+        if (user && user.role === 'Editor') {
+            if (safeUpdateData.status === 'Published') {
+                safeUpdateData.status = 'Pending Approval';
+            }
+        }
+
+        Object.assign(page, safeUpdateData);
         return await this.cmsPageRepository.save(page);
     }
 
@@ -41,30 +63,24 @@ export class CmsPagesService {
     }
 
     async findBySlug(slug: string) {
-        const pages = await this.cmsPageRepository.find({ 
-            where: { status: 'Published' } 
-        });
-        
+        const pages = await this.cmsPageRepository.find({ where: { status: 'Published' } });
         const page = pages.find(p => p.seo_content && p.seo_content.slug === slug);
         
         if (!page) {
-            throw new NotFoundException(`Published page with slug '${slug}' not found`);
+            throw new NotFoundException(`Published page with slug ${slug} not found`);
         }
-        
         return page;
     }
 
-    // NEW FEATURE: Duplicate logic
     async duplicate(id: number) {
         const originalPage = await this.findOne(id);
         
-        // Copy the properties but reset specific fields
         const duplicateData = {
             ...originalPage,
             title: `${originalPage.title} (Copy)`,
-            status: 'Draft', // Duplicates should default to Draft
-            id: undefined, // Let the database generate a new ID
-            seo_content: null, // Clear SEO to prevent slug conflicts
+            status: 'Draft', 
+            id: undefined, 
+            seo_content: null, 
             created_at: undefined,
             updated_at: undefined,
         };
