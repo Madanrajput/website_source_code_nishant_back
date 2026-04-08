@@ -1,5 +1,6 @@
-import { Controller, Get, Patch, Body } from '@nestjs/common';
+import { Controller, Get, Patch, Body, ForbiddenException, Request, UseGuards } from '@nestjs/common';
 import { SiteSettingsService } from './site-settings.service';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('site-settings')
 export class SiteSettingsController {
@@ -10,8 +11,12 @@ export class SiteSettingsController {
     return this.siteSettingsService.getSettings();
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Patch()
-  updateSettings(@Body() data: any) {
+  updateSettings(@Body() data: any, @Request() req) {
+    if (req.user?.role !== 'Admin') {
+      throw new ForbiddenException('Only admins can update global site settings.');
+    }
     return this.siteSettingsService.updateSettings(data);
   }
 }

@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { PortfolioPageType, PortfolioProject } from './entities/portfolio_project.entity';
 import { Repository } from 'typeorm';
 import { basename } from 'path';
+import { resolveBooleanPublishState } from '../auth/utils/cms-access.util';
 
 @Injectable()
 export class PortfolioProjectService {
@@ -15,7 +16,7 @@ export class PortfolioProjectService {
   ) {}
 
 
-  async create(createPortfolioProjectDto: CreatePortfolioProjectDto, imagePath: string | null): Promise<PortfolioProject> {
+  async create(createPortfolioProjectDto: CreatePortfolioProjectDto, imagePath: string | null, user?: any): Promise<PortfolioProject> {
     let imageName: string | null = null;
     if (imagePath) {
       imageName = basename(imagePath); // Extract the filename from the path
@@ -23,8 +24,13 @@ export class PortfolioProjectService {
     if(createPortfolioProjectDto?.status == "true"){
       createPortfolioProjectDto.status = true;
     }
+    const resolvedStatus = resolveBooleanPublishState(createPortfolioProjectDto?.status, user);
     const newRecord = this.portfolioProjectRepository.create({
       ...createPortfolioProjectDto,
+      status:
+        typeof resolvedStatus === 'boolean'
+          ? resolvedStatus
+          : createPortfolioProjectDto.status,
       image: imageName,
       child_images: [
         { image: "default.png" },
@@ -103,7 +109,7 @@ export class PortfolioProjectService {
     };
   }
 
-  async update(id: number, updatePortfolioProjectDto: UpdatePortfolioProjectDto, imagePath: string | null) {
+  async update(id: number, updatePortfolioProjectDto: UpdatePortfolioProjectDto, imagePath: string | null, user?: any) {
     const existingRecord = await this.portfolioProjectRepository.findOne({ where: { id } });
     if (!existingRecord) {
       throw new Error('Record not found');
@@ -111,6 +117,13 @@ export class PortfolioProjectService {
 
     if(updatePortfolioProjectDto?.status == "true"){
       updatePortfolioProjectDto.status = true;
+    }
+
+    if (updatePortfolioProjectDto?.status !== undefined) {
+      const resolvedStatus = resolveBooleanPublishState(updatePortfolioProjectDto.status, user);
+      if (typeof resolvedStatus === 'boolean') {
+        updatePortfolioProjectDto.status = resolvedStatus as any;
+      }
     }
 
     if (imagePath) {

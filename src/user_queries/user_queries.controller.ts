@@ -48,6 +48,12 @@ export class UserQueriesController {
         { header: 'Phone Number', key: 'phoneNumber', width: 15 },
         { header: 'Place', key: 'place', width: 20 },
         { header: 'Query', key: 'query', width: 30 },
+        { header: 'Lead Form', key: 'leadFormName', width: 30 },
+        { header: 'Lead Type', key: 'leadFormType', width: 16 },
+        { header: 'Source URL', key: 'sourceUrl', width: 30 },
+        { header: 'Trigger', key: 'triggerType', width: 14 },
+        { header: 'CTA Text', key: 'ctaText', width: 18 },
+        { header: 'Device', key: 'deviceType', width: 14 },
         { header: 'Submitted At', key: 'submittedAt', width: 20 },
       ];
 
@@ -59,6 +65,12 @@ export class UserQueriesController {
           phoneNumber: query.mobile,
           place: query.place,
           query: query.query,
+          leadFormName: query.lead_form_name,
+          leadFormType: query.lead_form_type,
+          sourceUrl: query.source_url,
+          triggerType: query.trigger_type,
+          ctaText: query.cta_text,
+          deviceType: query.device_type,
           submittedAt: query.created_at,
         });
       });

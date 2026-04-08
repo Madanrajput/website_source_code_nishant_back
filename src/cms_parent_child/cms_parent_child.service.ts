@@ -1,19 +1,171 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCmsParentChildDto } from './dto/create-cms_parent_child.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CmsParentChild, PageType } from './entities/cms_parent_child.entity';
 import { Repository } from 'typeorm';
-import { basename } from 'path';
+import { MediaAsset } from './entities/media-asset.entity';
+import { basename, extname } from 'path';
 import * as fs from 'fs';
 import * as path from 'path';
 
 @Injectable()
 export class CmsParentChildService {
+  private readonly mediaFolder = 'parent-child';
 
   constructor(
     @InjectRepository(CmsParentChild)
     private readonly cmsParentChildRepository: Repository<CmsParentChild>,
+    @InjectRepository(MediaAsset)
+    private readonly mediaAssetRepository: Repository<MediaAsset>,
   ) {}
+
+  private getUploadDir(folder = this.mediaFolder) {
+    const candidates = [
+      path.join(process.cwd(), 'uploads', folder),
+      path.resolve(__dirname, '..', '..', 'uploads', folder),
+      path.resolve(process.cwd(), 'backend', 'uploads', folder),
+    ];
+
+    const existingDir = candidates.find((dir) => fs.existsSync(dir));
+    return existingDir || candidates[0];
+  }
+
+  private ensureUploadDir(folder = this.mediaFolder) {
+    const uploadDir = this.getUploadDir(folder);
+
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    return uploadDir;
+  }
+
+  private getBaseUrl() {
+    return (process.env.BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
+  }
+
+  private buildMediaUrl(filename: string, folder = this.mediaFolder) {
+    return `${this.getBaseUrl()}/uploads/${folder}/${filename}`;
+  }
+
+  private createFallbackAltText(filename: string) {
+    const rawName = basename(filename, extname(filename));
+
+    return rawName
+      .replace(/[-_]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim() || 'Website image';
+  }
+
+  private guessMimeType(filename: string) {
+    const extension = extname(filename).toLowerCase();
+
+    if (extension === '.png') return 'image/png';
+    if (extension === '.jpg' || extension === '.jpeg') return 'image/jpeg';
+    if (extension === '.webp') return 'image/webp';
+    if (extension === '.gif') return 'image/gif';
+    if (extension === '.svg') return 'image/svg+xml';
+    if (extension === '.avif') return 'image/avif';
+
+    return 'application/octet-stream';
+  }
+
+  private cleanupTempFile(file?: Express.Multer.File | null) {
+    if (file?.path && fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
+  }
+
+  private formatMediaResponse(
+    filename: string,
+    asset?: MediaAsset | null,
+    fileStats?: fs.Stats,
+    folder = this.mediaFolder,
+  ) {
+    return {
+      id: asset?.id ?? null,
+      filename,
+      folder,
+      url: this.buildMediaUrl(filename, folder),
+      alt_text: asset?.alt_text || this.createFallbackAltText(filename),
+      original_name: asset?.original_name || filename,
+      mime_type: asset?.mime_type || this.guessMimeType(filename),
+      size_bytes: asset?.size_bytes ?? fileStats?.size ?? 0,
+      created_at: asset?.created_at ?? fileStats?.birthtime ?? new Date(),
+      updated_at: asset?.updated_at ?? fileStats?.mtime ?? new Date(),
+    };
+  }
+
+  private async upsertMediaAsset(params: {
+    filename: string;
+    folder?: string;
+    altText?: string | null;
+    originalName?: string | null;
+    mimeType?: string | null;
+    sizeBytes?: number | null;
+  }) {
+    const folder = params.folder || this.mediaFolder;
+    const existingAsset = await this.mediaAssetRepository.findOne({
+      where: {
+        filename: params.filename,
+        folder,
+      },
+    });
+
+    const targetAsset = existingAsset || this.mediaAssetRepository.create({
+      filename: params.filename,
+      folder,
+    });
+
+    if (params.altText !== undefined) {
+      const trimmedAlt = params.altText?.trim();
+      targetAsset.alt_text = trimmedAlt || this.createFallbackAltText(params.filename);
+    } else if (!targetAsset.alt_text) {
+      targetAsset.alt_text = this.createFallbackAltText(params.filename);
+    }
+
+    if (params.originalName !== undefined) {
+      targetAsset.original_name = params.originalName || params.filename;
+    } else if (!targetAsset.original_name) {
+      targetAsset.original_name = params.filename;
+    }
+
+    if (params.mimeType !== undefined) {
+      targetAsset.mime_type = params.mimeType || this.guessMimeType(params.filename);
+    } else if (!targetAsset.mime_type) {
+      targetAsset.mime_type = this.guessMimeType(params.filename);
+    }
+
+    if (params.sizeBytes !== undefined && params.sizeBytes !== null) {
+      targetAsset.size_bytes = params.sizeBytes;
+    } else if (!targetAsset.size_bytes) {
+      const filePath = path.join(this.ensureUploadDir(folder), params.filename);
+      if (fs.existsSync(filePath)) {
+        targetAsset.size_bytes = fs.statSync(filePath).size;
+      }
+    }
+
+    return this.mediaAssetRepository.save(targetAsset);
+  }
+
+  async uploadMedia(file: Express.Multer.File, altText: string) {
+    const trimmedAltText = altText?.trim();
+
+    if (!trimmedAltText) {
+      this.cleanupTempFile(file);
+      throw new BadRequestException('Alt text is mandatory for uploaded images');
+    }
+
+    const mediaAsset = await this.upsertMediaAsset({
+      filename: file.filename,
+      altText: trimmedAltText,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      sizeBytes: file.size,
+    });
+
+    return this.formatMediaResponse(file.filename, mediaAsset);
+  }
 
 
   // --- MAGIC CLONING SCRIPT: Gurugram to Faridabad ---
@@ -60,77 +212,111 @@ export class CmsParentChildService {
 
   // --- FIXED: Retrieve all images for Media Library ---
   async getAllMedia() {
-    // Attempt 1: Standard project root
-    let uploadDir = path.join(process.cwd(), 'uploads', 'parent-child');
-    
-    // Attempt 2: If running from inside /dist, step back up to the root folder
-    if (!fs.existsSync(uploadDir)) {
-      uploadDir = path.resolve(__dirname, '..', '..', 'uploads', 'parent-child');
-    }
-
-    // Attempt 3: Absolute fallback (specifically for your local Windows machine)
-    if (!fs.existsSync(uploadDir)) {
-       uploadDir = 'C:\\Projects\\hcinterior_backend\\uploads\\parent-child';
-    }
-
-    // DEBUGGING: This will print in your NestJS terminal so you can see exactly what is happening
-    console.log("Media Library is looking for images inside:", uploadDir);
-
-    // If directory still doesn't exist, return empty array
-    if (!fs.existsSync(uploadDir)) {
-      console.warn("WARNING: Upload directory not found!");
-      return [];
-    }
+    const uploadDir = this.ensureUploadDir();
+    const mediaAssets = await this.mediaAssetRepository.find({
+      where: { folder: this.mediaFolder },
+      order: { updated_at: 'DESC' },
+    });
+    const mediaAssetMap = new Map(
+      mediaAssets.map((asset) => [asset.filename, asset]),
+    );
 
     try {
-      const files = fs.readdirSync(uploadDir);
-      
-      // Fallback to localhost if BASE_URL is not set in your .env file
-      const baseUrl = process.env.BASE_URL 
-        ? `${process.env.BASE_URL}/uploads/parent-child/`
-        : `http://localhost:8000/uploads/parent-child/`; 
-      
-      return files
-        .filter(file => file !== '.gitkeep' && !file.startsWith('.')) // Ignore hidden files
-        .map(file => {
-          const stats = fs.statSync(path.join(uploadDir, file));
-          return {
-            filename: file,
-            url: `${baseUrl}${file}`,
-            size_bytes: stats.size,
-            created_at: stats.birthtime,
-          };
-        })
-        .sort((a, b) => b.created_at.getTime() - a.created_at.getTime()); // Newest first
+      const files = fs
+        .readdirSync(uploadDir)
+        .filter((file) => file !== '.gitkeep' && !file.startsWith('.'));
 
+      return files
+        .map((file) => {
+          const stats = fs.statSync(path.join(uploadDir, file));
+          return this.formatMediaResponse(file, mediaAssetMap.get(file), stats);
+        })
+        .sort(
+          (a, b) =>
+            new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+        );
     } catch (err) {
-      console.error("Error reading media directory:", err);
+      console.error('Error reading media directory:', err);
       return [];
     }
   }
 
-  // --- Replace image without URL change ---
-  async replaceExistingImage(targetFilename: string, newFile: Express.Multer.File) {
-    let uploadDir = path.join(process.cwd(), 'uploads', 'parent-child');
-    if (!fs.existsSync(uploadDir)) {
-      uploadDir = path.resolve(__dirname, '..', '..', 'uploads', 'parent-child');
+  async updateMediaAlt(targetFilename: string, altText: string) {
+    const trimmedAltText = altText?.trim();
+
+    if (!trimmedAltText) {
+      throw new BadRequestException('Alt text is mandatory');
     }
 
+    const uploadDir = this.ensureUploadDir();
     const targetPath = path.join(uploadDir, targetFilename);
-    
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+
+    if (!fs.existsSync(targetPath)) {
+      throw new NotFoundException('Image not found');
     }
 
-    // Overwrite the existing file with the new file
-    fs.renameSync(newFile.path, targetPath);
+    const fileStats = fs.statSync(targetPath);
+    const asset = await this.upsertMediaAsset({
+      filename: targetFilename,
+      altText: trimmedAltText,
+      originalName: targetFilename,
+      mimeType: this.guessMimeType(targetFilename),
+      sizeBytes: fileStats.size,
+    });
 
-    const baseUrl = process.env.BASE_URL || `http://localhost:8000`;
+    return {
+      message: 'Alt text updated successfully.',
+      media: this.formatMediaResponse(targetFilename, asset, fileStats),
+    };
+  }
+
+  // --- Replace image without URL change ---
+  async replaceExistingImage(
+    targetFilename: string,
+    newFile: Express.Multer.File,
+    altText?: string,
+  ) {
+    const uploadDir = this.ensureUploadDir();
+    const targetPath = path.join(uploadDir, targetFilename);
+    const targetExtension = extname(targetFilename).toLowerCase();
+    const newFileExtension = extname(newFile.originalname).toLowerCase();
+
+    if (!fs.existsSync(targetPath)) {
+      this.cleanupTempFile(newFile);
+      throw new NotFoundException('Image not found');
+    }
+
+    if (targetExtension && newFileExtension && targetExtension !== newFileExtension) {
+      this.cleanupTempFile(newFile);
+      throw new BadRequestException(
+        `Replacement image must use the same file format (${targetExtension}) to preserve the existing URL safely.`,
+      );
+    }
+
+    fs.copyFileSync(newFile.path, targetPath);
+    this.cleanupTempFile(newFile);
+
+    const existingAsset = await this.mediaAssetRepository.findOne({
+      where: {
+        filename: targetFilename,
+        folder: this.mediaFolder,
+      },
+    });
+    const fileStats = fs.statSync(targetPath);
+    const asset = await this.upsertMediaAsset({
+      filename: targetFilename,
+      altText:
+        altText !== undefined
+          ? altText
+          : existingAsset?.alt_text || this.createFallbackAltText(targetFilename),
+      originalName: newFile.originalname,
+      mimeType: newFile.mimetype || this.guessMimeType(targetFilename),
+      sizeBytes: fileStats.size,
+    });
 
     return { 
       message: 'Image successfully replaced. Existing URL remains active.',
-      filename: targetFilename,
-      url: `${baseUrl}/uploads/parent-child/${targetFilename}`
+      media: this.formatMediaResponse(targetFilename, asset, fileStats),
     };
   }
   

@@ -20,6 +20,12 @@ export class CmsBlog {
     @Column({ type: 'varchar', length: 255 })
     image: string;
 
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    image_alt: string;
+
+    @Column({ type: 'varchar', length: 50, default: 'Draft' })
+    status: string;
+
     @Column('json')
     seo_content: any;
 

@@ -23,6 +23,12 @@ export class CmsPagesController {
         return this.cmsPagesService.findAll();
     }
 
+    @UseGuards(AuthGuard('jwt'))
+    @Get('all')
+    findAllForCms() {
+        return this.cmsPagesService.findAllForCms();
+    }
+
     // Public single fetch by slug
     @Get('slug/:slug')
     findBySlug(@Param('slug') slug: string) {
@@ -30,6 +36,7 @@ export class CmsPagesController {
     }
 
     // Fetch single by ID
+    @UseGuards(AuthGuard('jwt'))
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.cmsPagesService.findOne(+id);
@@ -44,8 +51,8 @@ export class CmsPagesController {
 
     @UseGuards(AuthGuard('jwt'))
     @Patch('seo-content/:id')
-    updateSeoContent(@Param('id') id: string, @Body() seo_content: any) {
-        return this.cmsPagesService.updateSeoContent(+id, seo_content);
+    updateSeoContent(@Param('id') id: string, @Body() seo_content: any, @Request() req) {
+        return this.cmsPagesService.updateSeoContent(+id, seo_content, req.user);
     }
 
     @UseGuards(AuthGuard('jwt'))

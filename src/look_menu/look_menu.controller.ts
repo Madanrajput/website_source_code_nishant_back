@@ -1,16 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Request, UseGuards } from '@nestjs/common';
 import { LookMenuService } from './look_menu.service';
 import { CreateLookMenuDto } from './dto/create-look_menu.dto';
 import { UpdateLookMenuDto } from './dto/update-look_menu.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { ensureCmsDeletePermission } from '../auth/utils/cms-access.util';
 
 @Controller('look-menu')
 export class LookMenuController {
   constructor(private readonly lookMenuService: LookMenuService) {}
 
   // ✅ Create a new entry
+  @UseGuards(AuthGuard('jwt'))
   @Post()
-  create(@Body() createLookMenuDto: CreateLookMenuDto) {
-    return this.lookMenuService.create(createLookMenuDto);
+  create(@Body() createLookMenuDto: CreateLookMenuDto, @Request() req) {
+    return this.lookMenuService.create(createLookMenuDto, req.user);
   }
 
   // ✅ Get all records (optional status filter via query param)
@@ -27,14 +30,17 @@ export class LookMenuController {
   }
 
   // ✅ Update a record
+  @UseGuards(AuthGuard('jwt'))
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateLookMenuDto: UpdateLookMenuDto) {
-    return this.lookMenuService.update(+id, updateLookMenuDto);
+  update(@Param('id') id: string, @Body() updateLookMenuDto: UpdateLookMenuDto, @Request() req) {
+    return this.lookMenuService.update(+id, updateLookMenuDto, req.user);
   }
 
   // ✅ Delete a record
+  @UseGuards(AuthGuard('jwt'))
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id') id: string, @Request() req) {
+    ensureCmsDeletePermission(req.user);
     return this.lookMenuService.remove(+id);
   }
 }

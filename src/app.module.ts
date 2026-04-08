@@ -45,6 +45,8 @@ import configuration from './config/configuration';
 import { RedirectsModule } from './redirects/redirects.module';
 import { SiteSettingsModule } from './site-settings/site-settings.module';
 import { CmsUsersModule } from './cms-users/cms-users.module';
+import { PopupRulesModule } from './popup-rules/popup-rules.module';
+import { RobotsTxtModule } from './robots-txt/robots-txt.module';
 
 @Module({
   imports: [
@@ -94,7 +96,9 @@ import { CmsUsersModule } from './cms-users/cms-users.module';
     CmsPagesModule,
     RedirectsModule,
     SiteSettingsModule,
-    CmsUsersModule
+    CmsUsersModule,
+    PopupRulesModule,
+    RobotsTxtModule
   ],
   })
 export class AppModule {}

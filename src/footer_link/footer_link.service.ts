@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { FooterLink } from './entities/footer_link.entity';
 import { CreateFooterLinkDto } from './dto/create-footer_link.dto';
 import { UpdateFooterLinkDto } from './dto/update-footer_link.dto';
+import { resolveActiveStatus } from '../auth/utils/cms-access.util';
 
 @Injectable()
 export class FooterLinkService {
@@ -14,8 +15,11 @@ export class FooterLinkService {
   ) {}
 
   // ✅ Create a new LookMenu record
-  async create(CreateFooterLinkDto: CreateFooterLinkDto): Promise<FooterLink> {
-    const lookMenu = this.footerLinkRepository.create(CreateFooterLinkDto);
+  async create(CreateFooterLinkDto: CreateFooterLinkDto, user?: any): Promise<FooterLink> {
+    const lookMenu = this.footerLinkRepository.create({
+      ...CreateFooterLinkDto,
+      status: resolveActiveStatus((CreateFooterLinkDto as any)?.status || 'inactive', user),
+    });
     return await this.footerLinkRepository.save(lookMenu);
   }
 
@@ -36,9 +40,15 @@ export class FooterLinkService {
   }
 
   // ✅ Update a record and return updated data
-  async update(id: number, updateLookMenuDto: UpdateFooterLinkDto): Promise<FooterLink> {
+  async update(id: number, updateLookMenuDto: UpdateFooterLinkDto, user?: any): Promise<FooterLink> {
     const record = await this.findOne(id);
-    Object.assign(record, updateLookMenuDto);
+    Object.assign(record, {
+      ...updateLookMenuDto,
+      status:
+        (updateLookMenuDto as any)?.status !== undefined
+          ? resolveActiveStatus((updateLookMenuDto as any)?.status, user)
+          : record.status,
+    });
     return await this.footerLinkRepository.save(record);
   }
 

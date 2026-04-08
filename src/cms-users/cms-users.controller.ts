@@ -31,6 +31,17 @@ export class CmsUsersController {
         return this.cmsUsersService.updateRole(id, role);
     }
 
+    @Patch(':id/permissions')
+    updatePermissions(
+        @Param('id', ParseIntPipe) id: number,
+        @Body('cms_permissions') cmsPermissions: any,
+        @Body('permissions') permissions: any,
+    ) {
+        const resolvedPermissions = cmsPermissions || permissions;
+        if (!resolvedPermissions) throw new BadRequestException('CMS permissions are required');
+        return this.cmsUsersService.updateCmsPermissions(id, resolvedPermissions);
+    }
+
     @Patch(':id/status')
     updateStatus(@Param('id', ParseIntPipe) id: number, @Body('status') status: string) {
         if (!status) throw new BadRequestException('Status is required');

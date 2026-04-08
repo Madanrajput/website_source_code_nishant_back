@@ -27,6 +27,15 @@ export class SeoTag {
     @Column({ nullable: true })
     og_image: string;
     // ------------------
+
+    @Column({ type: 'boolean', default: true })
+    include_in_sitemap: boolean;
+
+    @Column({ nullable: true, default: 'monthly' })
+    sitemap_change_frequency: string;
+
+    @Column({ nullable: true, default: '0.8' })
+    sitemap_priority: string;
   
     @Column({
         type: 'enum',

@@ -70,6 +70,12 @@ export class User {
   role: string;
 
   @Column({ type: 'simple-json', nullable: true })
+  cms_permissions?: {
+    canPublish: boolean;
+    canDelete: boolean;
+  };
+
+  @Column({ type: 'simple-json', nullable: true })
   savedPaymentMethods: string[];
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })

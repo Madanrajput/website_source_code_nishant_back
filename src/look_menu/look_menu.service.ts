@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { LookMenu } from './entities/look_menu.entity';
 import { CreateLookMenuDto } from './dto/create-look_menu.dto';
 import { UpdateLookMenuDto } from './dto/update-look_menu.dto';
+import { resolveActiveStatus } from '../auth/utils/cms-access.util';
 
 @Injectable()
 export class LookMenuService {
@@ -13,8 +14,11 @@ export class LookMenuService {
   ) {}
 
   // ✅ Create a new LookMenu record
-  async create(createLookMenuDto: CreateLookMenuDto): Promise<LookMenu> {
-    const lookMenu = this.lookMenuRepository.create(createLookMenuDto);
+  async create(createLookMenuDto: CreateLookMenuDto, user?: any): Promise<LookMenu> {
+    const lookMenu = this.lookMenuRepository.create({
+      ...createLookMenuDto,
+      status: resolveActiveStatus((createLookMenuDto as any)?.status || 'inactive', user),
+    });
     return await this.lookMenuRepository.save(lookMenu);
   }
 
@@ -35,9 +39,15 @@ export class LookMenuService {
   }
 
   // ✅ Update a record and return updated data
-  async update(id: number, updateLookMenuDto: UpdateLookMenuDto): Promise<LookMenu> {
+  async update(id: number, updateLookMenuDto: UpdateLookMenuDto, user?: any): Promise<LookMenu> {
     const record = await this.findOne(id);
-    Object.assign(record, updateLookMenuDto);
+    Object.assign(record, {
+      ...updateLookMenuDto,
+      status:
+        (updateLookMenuDto as any)?.status !== undefined
+          ? resolveActiveStatus((updateLookMenuDto as any)?.status, user)
+          : record.status,
+    });
     return await this.lookMenuRepository.save(record);
   }
 
@@ -47,5 +57,4 @@ export class LookMenuService {
     await this.lookMenuRepository.softDelete(id);
   }
 }
-
 

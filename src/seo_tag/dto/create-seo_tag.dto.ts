@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsBoolean } from 'class-validator';
 
 export class CreateSeoTagDto {
     @IsString()
@@ -30,6 +30,18 @@ export class CreateSeoTagDto {
     @IsOptional()
     og_image?: string;
     // ------------------
+
+    @IsBoolean()
+    @IsOptional()
+    include_in_sitemap?: boolean;
+
+    @IsString()
+    @IsOptional()
+    sitemap_change_frequency?: string;
+
+    @IsString()
+    @IsOptional()
+    sitemap_priority?: string;
 
     @IsEnum(['active', 'inactive'])
     @IsOptional()

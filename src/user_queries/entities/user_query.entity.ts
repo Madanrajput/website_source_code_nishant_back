@@ -23,6 +23,23 @@ export class UserQuery {
     @Column()
     ip_address: string;
 
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    source_url: string;
+
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    lead_form_name: string;
+
+    @Column({ type: 'varchar', length: 100, nullable: true })
+    lead_form_type: string;
+
+    @Column({ type: 'varchar', length: 50, nullable: true })
+    trigger_type: string;
+
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    cta_text: string;
+
+    @Column({ type: 'varchar', length: 50, nullable: true })
+    device_type: string;
 
     @CreateDateColumn()
     created_at: Date;

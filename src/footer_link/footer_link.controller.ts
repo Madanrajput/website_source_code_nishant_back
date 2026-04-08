@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Request, UseGuards } from '@nestjs/common';
 import { FooterLinkService } from './footer_link.service';
 import { CreateFooterLinkDto } from './dto/create-footer_link.dto';
 import { UpdateFooterLinkDto } from './dto/update-footer_link.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { ensureCmsDeletePermission } from '../auth/utils/cms-access.util';
 
 
 @Controller('footer-link')
@@ -9,9 +11,10 @@ export class FooterLinkController {
  constructor(private readonly footerLinkService: FooterLinkService) {}
 
   // ✅ Create a new entry
+  @UseGuards(AuthGuard('jwt'))
   @Post()
-  create(@Body() CreateFooterLinkDto: CreateFooterLinkDto) {
-    return this.footerLinkService.create(CreateFooterLinkDto);
+  create(@Body() CreateFooterLinkDto: CreateFooterLinkDto, @Request() req) {
+    return this.footerLinkService.create(CreateFooterLinkDto, req.user);
   }
 
   // ✅ Get all records (optional status filter via query param)
@@ -28,14 +31,17 @@ export class FooterLinkController {
   }
 
   // ✅ Update a record
+  @UseGuards(AuthGuard('jwt'))
   @Patch(':id')
-  update(@Param('id') id: string, @Body() UpdateFooterLinkDto: UpdateFooterLinkDto) {
-    return this.footerLinkService.update(+id, UpdateFooterLinkDto);
+  update(@Param('id') id: string, @Body() UpdateFooterLinkDto: UpdateFooterLinkDto, @Request() req) {
+    return this.footerLinkService.update(+id, UpdateFooterLinkDto, req.user);
   }
 
   // ✅ Delete a record
+  @UseGuards(AuthGuard('jwt'))
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id') id: string, @Request() req) {
+    ensureCmsDeletePermission(req.user);
     return this.footerLinkService.remove(+id);
   }
 }

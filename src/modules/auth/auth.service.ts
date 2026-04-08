@@ -9,6 +9,7 @@ import { LoginUserDto } from './dto/login.dto';
 import { RegisterUserDto } from './dto/register.dto';
 import { UserRepository } from 'src/repositories/user.repository';
 import * as bcrypt from 'bcryptjs';
+import { getEffectiveCmsPermissions } from 'src/auth/utils/cms-access.util';
 
 @Injectable()
 export class AuthService {
@@ -33,11 +34,18 @@ export class AuthService {
             throw new UnauthorizedException('Invalid credentials');
         }
 
+        if (user.status && user.status !== 'Active') {
+            throw new UnauthorizedException('Your CMS access is suspended. Please contact an administrator.');
+        }
+
+        const cmsPermissions = getEffectiveCmsPermissions(user);
+
         // 🌟 FIX: Inject the role into the JWT Token payload!
         const payload = { 
             username: user.username, 
             sub: user.id,
-            role: user.role || 'User' // Default to User if none exists
+            role: user.role || 'User', // Default to User if none exists
+            cms_permissions: cmsPermissions,
         };
         const token = this.jwtService.sign(payload);
 
@@ -45,7 +53,10 @@ export class AuthService {
 
         return {
             message: 'Login successful',
-            user: userWithoutPassword,
+            user: {
+                ...userWithoutPassword,
+                cms_permissions: cmsPermissions,
+            },
             accessToken: token,
         };
     }

@@ -1,24 +1,28 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, BadRequestException, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile, BadRequestException, Request, UseGuards } from '@nestjs/common';
 import { CmsParentChildService } from './cms_parent_child.service';
 import { CreateCmsParentChildDto } from './dto/create-cms_parent_child.dto';
 import { UpdateCmsParentChildDto } from './dto/update-cms_parent_child.dto';
 import { PageType } from './entities/cms_parent_child.entity';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Request } from 'express';
+import { AuthGuard } from '@nestjs/passport';
+import { ensureCmsDeletePermission } from '../auth/utils/cms-access.util';
 
 @Controller('cms-parent-child')
 export class CmsParentChildController {
   constructor(private readonly cmsParentChildService: CmsParentChildService) {}
 
+  @UseGuards(AuthGuard('jwt'))
   @Post('upload-image')
   @UseInterceptors(FileInterceptor('image'))
-  uploadImageOnly(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
+  uploadImageOnly(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('alt_text') altText: string,
+  ) {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
-  
-    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/parent-child/${file.filename}`;
-    return { filename: file.filename, url: imageUrl };
+
+    return this.cmsParentChildService.uploadMedia(file, altText);
   }
 
   //  @Get('clone-gurugram-to-faridabad')
@@ -31,19 +35,31 @@ export class CmsParentChildController {
     return this.cmsParentChildService.getAllMedia();
   }
 
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('media-library/:filename/alt')
+  updateMediaAlt(
+    @Param('filename') targetFilename: string,
+    @Body('alt_text') altText: string,
+  ) {
+    return this.cmsParentChildService.updateMediaAlt(targetFilename, altText);
+  }
+
   // --- NEW: Image Replacement Without URL Change ---
+  @UseGuards(AuthGuard('jwt'))
   @Post('replace-image/:filename')
   @UseInterceptors(FileInterceptor('image'))
   replaceImage(
     @Param('filename') targetFilename: string,
     @UploadedFile() file: Express.Multer.File,
+    @Body('alt_text') altText?: string,
   ) {
     if (!file) {
       throw new BadRequestException('No new file uploaded for replacement');
     }
-    return this.cmsParentChildService.replaceExistingImage(targetFilename, file);
+    return this.cmsParentChildService.replaceExistingImage(targetFilename, file, altText);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Post()
   @UseInterceptors(FileInterceptor('image'))
   async create(
@@ -75,6 +91,7 @@ export class CmsParentChildController {
     return this.cmsParentChildService.findById(+id);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Patch(':id')
   @UseInterceptors(FileInterceptor('image'))
   async update(
@@ -92,6 +109,7 @@ export class CmsParentChildController {
     return this.cmsParentChildService.update(+id, updateData);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Patch('update-child-image/:id')
   @UseInterceptors(FileInterceptor('image'))
   async updateChildImage(
@@ -103,8 +121,10 @@ export class CmsParentChildController {
     return this.cmsParentChildService.updateChildImage(+id, childImageIndex, imagePath);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id') id: string, @Request() req) {
+    ensureCmsDeletePermission(req.user);
     return this.cmsParentChildService.remove(+id);
   }
 

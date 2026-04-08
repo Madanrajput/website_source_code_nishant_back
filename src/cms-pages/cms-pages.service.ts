@@ -3,6 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CmsPage } from './entities/cms-page.entity';
 import { CreateCmsPageDto } from './dto/create-cms-page.dto';
+import { CmsStatus } from '../auth/enums/cms-status.enum';
+import {
+    canPublishCmsContent,
+    resolvePublishStatus,
+} from '../auth/utils/cms-access.util';
 
 @Injectable()
 export class CmsPagesService {
@@ -13,20 +18,23 @@ export class CmsPagesService {
 
     // 🌟 Added 'user' parameter to check roles
     async create(createCmsPageDto: CreateCmsPageDto, user?: any) {
-        let safeDto = { ...createCmsPageDto };
-
-        // 🔒 WORKFLOW ENFORCEMENT: Editors cannot publish directly
-        if (user && user.role === 'Editor') {
-            if (safeDto.status === 'Published') {
-                safeDto.status = 'Pending Approval';
-            }
-        }
+        const safeDto = {
+            ...createCmsPageDto,
+            status: resolvePublishStatus(createCmsPageDto.status || CmsStatus.Draft, user),
+        };
 
         const newPage = this.cmsPageRepository.create(safeDto);
         return await this.cmsPageRepository.save(newPage);
     }
 
     async findAll() {
+        return await this.cmsPageRepository.find({
+            where: { status: CmsStatus.Published },
+            order: { created_at: 'DESC' }
+        });
+    }
+
+    async findAllForCms() {
         return await this.cmsPageRepository.find({
             order: { created_at: 'DESC' }
         });
@@ -43,27 +51,27 @@ export class CmsPagesService {
     // 🌟 Added 'user' parameter to check roles
     async update(id: number, updateData: any, user?: any) {
         const page = await this.findOne(id);
-        let safeUpdateData = { ...updateData };
+        const safeUpdateData = { ...updateData };
 
-        // 🔒 WORKFLOW ENFORCEMENT: Editors cannot publish directly
-        if (user && user.role === 'Editor') {
-            if (safeUpdateData.status === 'Published') {
-                safeUpdateData.status = 'Pending Approval';
-            }
+        if (safeUpdateData.status !== undefined) {
+            safeUpdateData.status = resolvePublishStatus(safeUpdateData.status, user);
         }
 
         Object.assign(page, safeUpdateData);
         return await this.cmsPageRepository.save(page);
     }
 
-    async updateSeoContent(id: number, seo_content: any) {
+    async updateSeoContent(id: number, seo_content: any, user?: any) {
         const page = await this.findOne(id);
         page.seo_content = seo_content;
+        if (!canPublishCmsContent(user) && page.status === CmsStatus.Published) {
+            page.status = CmsStatus.Pending;
+        }
         return await this.cmsPageRepository.save(page);
     }
 
     async findBySlug(slug: string) {
-        const pages = await this.cmsPageRepository.find({ where: { status: 'Published' } });
+        const pages = await this.cmsPageRepository.find({ where: { status: CmsStatus.Published } });
         const page = pages.find(p => p.seo_content && p.seo_content.slug === slug);
         
         if (!page) {
@@ -78,7 +86,7 @@ export class CmsPagesService {
         const duplicateData = {
             ...originalPage,
             title: `${originalPage.title} (Copy)`,
-            status: 'Draft', 
+            status: CmsStatus.Draft,
             id: undefined, 
             seo_content: null, 
             created_at: undefined,
