@@ -111,6 +111,7 @@ export class CmsContentService {
         case PageType.ABOUT_US_SLIDER:
         case PageType.HOW_IT_WORKS:
         case PageType.REFER_AND_EARN:
+        case PageType.HOME_PAGE_CONTENT_WHY_CHOOSE_US:
           jsonContent.forEach((content) => {
             content.image = content.image ? `${baseUrl}${content.image}` : null;
           });

@@ -19,7 +19,6 @@ export class CmsBlogController {
     @Request() req,
   ) {
     const image = file ? file.filename : null;
-
     return this.cmsBlogService.create(createCmsBlogDto, image, req.user);
   }
 
@@ -38,6 +37,24 @@ export class CmsBlogController {
   findAllRouteList() {
     return this.cmsBlogService.findAllRouteList();
   }
+
+  // --- NEW ROUTES FIXING THE 404 ERROR ---
+  @UseGuards(AuthGuard('jwt'))
+  @Get(':id/versions')
+  async getVersions(@Param('id', ParseIntPipe) id: number) {
+    return this.cmsBlogService.getVersions(id);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':id/restore/:versionId')
+  async restoreVersion(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('versionId', ParseIntPipe) versionId: number,
+    @Request() req
+  ) {
+    return this.cmsBlogService.restoreVersion(id, versionId, req.user);
+  }
+  // ---------------------------------------
 
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -59,7 +76,6 @@ export class CmsBlogController {
     @Request() req,
   ) {
     const image = file ? file.filename : null;
-  
     return this.cmsBlogService.update(id, updateCmsBlogDto, image, req.user);
   }
 

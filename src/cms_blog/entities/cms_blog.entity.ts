@@ -14,7 +14,7 @@ export class CmsBlog {
     @Column({ type: 'varchar', length: 255 })
     writer_name: string;
 
-    @Column({ type: 'timestamp' })
+    @Column({ type: 'timestamp' , nullable:true })
     published_on: Date;
 
     @Column({ type: 'varchar', length: 255 })

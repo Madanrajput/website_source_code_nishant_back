@@ -6,10 +6,11 @@ import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { CmsBlog } from './entities/cms_blog.entity';
+import { CmsBlogVersion } from './entities/cms_blog_version.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([CmsBlog]), // Register the entity here
+    TypeOrmModule.forFeature([CmsBlog , CmsBlogVersion]), // Register the entity here
     MulterModule.register({
       storage: diskStorage({
         destination: './uploads/blog',

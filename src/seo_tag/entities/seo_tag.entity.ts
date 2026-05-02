@@ -5,29 +5,33 @@ export class SeoTag {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column()
-    title: string;
-
-    @Column()
-    meta_description: string;
-
+    // The unique identifier for the frontend route (e.g., '/', '/about', '/blog/my-post')
     @Column()
     page_name: string;
 
-    @Column()
-    meta_can_tag: string;
+    @Column({ nullable: true })
+    meta_title: string;
+
+    @Column({ type: 'text', nullable: true })
+    meta_description: string;
 
     @Column({ nullable: true })
-    meta_image: string;
-
-    // --- NEW FIELDS ---
-    @Column({ nullable: true, default: 'index, follow' })
-    meta_robots: string;
+    canonical_url: string;
 
     @Column({ nullable: true })
     og_image: string;
-    // ------------------
 
+    @Column({ nullable: true, default: 'index, follow' })
+    meta_robots: string;
+
+    @Column({ type: 'text', nullable: true })
+    keywords: string;
+
+    // JSON column to store dynamic structured data (Schema.org)
+    @Column({ type: 'json', nullable: true })
+    custom_schema: any;
+
+    // --- SITEMAP CONFIGURATION ---
     @Column({ type: 'boolean', default: true })
     include_in_sitemap: boolean;
 

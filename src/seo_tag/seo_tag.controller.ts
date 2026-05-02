@@ -11,8 +11,8 @@ export class SeoTagController {
 
   @UseGuards(AuthGuard('jwt'))
   @Post()
-  create(@Body() CreateSeoTagDto: CreateSeoTagDto, @Request() req) {
-    return this.seoTagService.create(CreateSeoTagDto, req.user);
+  create(@Body() createSeoTagDto: CreateSeoTagDto, @Request() req) {
+    return this.seoTagService.create(createSeoTagDto, req.user);
   }
 
   @Get()
@@ -20,7 +20,7 @@ export class SeoTagController {
     return this.seoTagService.findAll(status);
   }
 
-  // 🌟 NEW: Endpoint to fetch by route path (Must be placed BEFORE ':id' so it doesn't get confused)
+  // 🌟 Endpoint to fetch by route path (Must be placed BEFORE ':id')
   @Get('route')
   findByRoute(@Query('path') path: string) {
     if (!path) throw new BadRequestException('Path query parameter is required');
@@ -34,8 +34,8 @@ export class SeoTagController {
 
   @UseGuards(AuthGuard('jwt'))
   @Patch(':id')
-  update(@Param('id') id: string, @Body() UpdateSeoTagDto: UpdateSeoTagDto, @Request() req) {
-    return this.seoTagService.update(+id, UpdateSeoTagDto, req.user);
+  update(@Param('id') id: string, @Body() updateSeoTagDto: UpdateSeoTagDto, @Request() req) {
+    return this.seoTagService.update(+id, updateSeoTagDto, req.user);
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -44,4 +44,11 @@ export class SeoTagController {
     ensureCmsDeletePermission(req.user);
     return this.seoTagService.remove(+id);
   }
+
+  // Add this endpoint inside the SeoTagController class
+  @Get('migrate-legacy-data')
+  migrateData() {
+    return this.seoTagService.migrateLegacyData();
+  }
 }
+

@@ -20,6 +20,7 @@ export enum PageType {
     HOME_PAGE_CONTENT_WHAT_WE_ARE = 'home_page_content_what_we_are',
     HOME_PAGE_CONTENT_MEET_US = 'home_page_content_meet_us',
     HOME_PAGE_CONTENT_EVERY_SPACE = 'home_page_content_every_space',
+    HOME_PAGE_CONTENT_WHY_CHOOSE_US = 'home_page_content_why_choose_us',
     CANCELLATION_POLICY = 'cancellation_policy',
     CREATING_THE_HOME_OF_YOUR_DREAMS = 'creating_the_home_of_your_dreams',
     CREATING_THE_HOME_OF_YOUR_DREAMS_2 = 'creating_the_home_of_your_dreams_2',
