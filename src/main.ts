@@ -12,7 +12,7 @@ async function bootstrap() {
     // Fix CORS
     app.enableCors({
         origin: ['https://hcinterior.in', 'https://www.hcinterior.in', 'https://staging.hcinterior.in', 'http://localhost:3000'],
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS','PATCH'],
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS','PATCH','HEAD'],
         credentials: true,
         allowedHeaders: ['Content-Type', 'Authorization'],
     });

@@ -28,6 +28,8 @@ export enum PageType {
     CREATING_THE_HOME_OF_YOUR_DREAMS_4 = 'creating_the_home_of_your_dreams_4',
     CREATING_THE_HOME_OF_YOUR_DREAMS_5 = 'creating_the_home_of_your_dreams_5',
     CREATING_THE_HOME_OF_YOUR_DREAMS_6 = 'creating_the_home_of_your_dreams_6',
+    HOME_PAGE_ESTIMATE_BANNER = 'home_page_estimate_banner',
+    HOME_PAGE_ESTIMATE_CARDS = 'home_page_estimate_cards',
  }
 
 @Entity('cms_content')

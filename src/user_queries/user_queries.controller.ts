@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Res, Req, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Res, Req, HttpException, HttpStatus, UseGuards } from '@nestjs/common';
 import { Request } from 'express'; // Import Express Request type
 import { UserQueriesService } from './user_queries.service';
 import { CreateUserQueryDto } from './dto/create-user_query.dto';
 import { UpdateUserQueryDto } from './dto/update-user_query.dto';
 import * as ExcelJS from 'exceljs';
 import { Response } from 'express';
+import { AuthGuard } from '@nestjs/passport';
 @Controller('user-queries')
 export class UserQueriesController {
   constructor(private readonly userQueriesService: UserQueriesService) {}
@@ -28,6 +29,7 @@ export class UserQueriesController {
     });
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Get()
   findAll() {
     return this.userQueriesService.findAll();
@@ -86,6 +88,7 @@ export class UserQueriesController {
     }
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.userQueriesService.findOne(+id);

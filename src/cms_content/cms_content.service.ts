@@ -13,7 +13,6 @@ export class CmsContentService {
     private readonly cmsContentRepository: Repository<CmsContent>,
   ) {}
 
-
   create(page_type: PageType, createCmsContentDto: CreateCmsContentDto, imagePath: string) {
     const newContent = this.cmsContentRepository.create({
       page_type,
@@ -39,75 +38,34 @@ export class CmsContentService {
 
     const baseUrl = `${process.env.BASE_URL}/uploads/cms-content/`;
     if (contentDataArray.length > 1) {
-      
       switch (page_type) {
         case PageType.TEAM:
+        case PageType.HOME_PAGE_CONTENT:
+        case PageType.HOME_PAGE_CONTENT_WHAT_WE_ARE:
+        case PageType.HOME_PAGE_ESTIMATE_CARDS:
+        case PageType.HOME_PAGE_CONTENT_HOW_WE_WORK:
           contentDataArray.forEach((contentData) => {
             const jsonContent = contentData.json_content;
             jsonContent.image = jsonContent.image ? `${baseUrl}${jsonContent.image}` : null;
             contentData.json_content = jsonContent;
           });
           return contentDataArray;
-
-          case PageType.HOME_PAGE_CONTENT:
-            contentDataArray.forEach((contentData) => {
-              const jsonContent = contentData.json_content;
-              jsonContent.image = jsonContent.image ? `${baseUrl}${jsonContent.image}` : null;
-              contentData.json_content = jsonContent;
-            });
-
-            return contentDataArray;
-            
-            case PageType.HOME_PAGE_CONTENT_WHAT_WE_ARE:
-            contentDataArray.forEach((contentData) => {
-              const jsonContent = contentData.json_content;
-              jsonContent.image = jsonContent.image ? `${baseUrl}${jsonContent.image}` : null;
-              contentData.json_content = jsonContent;
-            });
-            return contentDataArray;
-
-            
-
-            case PageType.HOME_PAGE_CONTENT_HOW_WE_WORK:
-              contentDataArray.forEach((contentData) => {
-                const jsonContent = contentData.json_content;
-                jsonContent.image = jsonContent.image ? `${baseUrl}${jsonContent.image}` : null;
-                contentData.json_content = jsonContent;
-              });
-              return contentDataArray;
-
         default:
           return contentDataArray;
       }
-
     } else {
       const contentData = contentDataArray[0];
       const jsonContent = contentData.json_content;
 
       switch (contentData.page_type) {
         case PageType.ABOUT_US:
-          jsonContent.mid_image = jsonContent.mid_image ? `${baseUrl}${jsonContent.mid_image}` : null;
-          contentData.json_content = jsonContent;
-          break;
-
         case PageType.HOME_PAGE_CONTENT_EVERY_SPACE:
-          jsonContent.mid_image = jsonContent.mid_image ? `${baseUrl}${jsonContent.mid_image}` : null;
-          contentData.json_content = jsonContent;
-          break;
-          
         case PageType.HOME_PAGE_CONTENT_MEET_US:
+        case PageType.CREATING_THE_HOME_OF_YOUR_DREAMS:
+        case PageType.CREATING_THE_HOME_OF_YOUR_DREAMS_2:
           jsonContent.mid_image = jsonContent.mid_image ? `${baseUrl}${jsonContent.mid_image}` : null;
           contentData.json_content = jsonContent;
           break;
-          
-          case PageType.CREATING_THE_HOME_OF_YOUR_DREAMS:
-            jsonContent.mid_image = jsonContent.mid_image ? `${baseUrl}${jsonContent.mid_image}` : null;
-            contentData.json_content = jsonContent;
-            break;
-            case PageType.CREATING_THE_HOME_OF_YOUR_DREAMS_2:
-              jsonContent.mid_image = jsonContent.mid_image ? `${baseUrl}${jsonContent.mid_image}` : null;
-              contentData.json_content = jsonContent;
-              break;
         case PageType.ABOUT_US_SLIDER:
         case PageType.HOW_IT_WORKS:
         case PageType.REFER_AND_EARN:
@@ -123,19 +81,14 @@ export class CmsContentService {
           });
           break;
         case PageType.TEAM:
+        case PageType.HOME_PAGE_CONTENT:
           contentData.json_content.image = contentData.json_content.image ? `${baseUrl}${contentData.json_content.image}` : null;
+          if(contentData.page_type === PageType.HOME_PAGE_CONTENT) return [contentData];
           break;
-            case PageType.HOME_PAGE_CONTENT:
-            contentData.json_content.image = contentData.json_content.image ? `${baseUrl}${contentData.json_content.image}` : null;
-
-            return [contentData];
-
         default:
       }
-
       return contentData;
     }
-
   }
 
   update(id: number, updateCmsContentDto: UpdateCmsContentDto) {
@@ -143,65 +96,18 @@ export class CmsContentService {
       json_content: updateCmsContentDto?.json_content,
     };
     return this.cmsContentRepository.update(id, updateContent);
-}
+  }
 
   async updateWithImage(id: number, updateCmsContentDto: UpdateCmsContentDto, imagePath: string) {
-
     const exitingContent = await this.cmsContentRepository.findOne({ where: { id } });
 
     switch (exitingContent.page_type) {
       case PageType.ABOUT_US:
-        const updateContent: Partial<CmsContent> = {
-          json_content: {
-            top_title: updateCmsContentDto?.json_content?.top_title || "",
-            top_description: updateCmsContentDto?.json_content?.top_description || "",
-            mid_sub_title: updateCmsContentDto?.json_content?.mid_sub_title || "",
-            mid_sub_description: updateCmsContentDto?.json_content?.mid_sub_description || "",
-            mid_image: imagePath ? basename(imagePath) : exitingContent.json_content.mid_image,
-          },
-        };
-
-        return this.cmsContentRepository.update(id, updateContent);
       case PageType.HOME_PAGE_CONTENT_EVERY_SPACE:
-        const updateContent_every_space: Partial<CmsContent> = {
-          json_content: {
-            top_title: updateCmsContentDto?.json_content?.top_title || "",
-            top_description: updateCmsContentDto?.json_content?.top_description || "",
-            mid_sub_title: updateCmsContentDto?.json_content?.mid_sub_title || "",
-            mid_sub_description: updateCmsContentDto?.json_content?.mid_sub_description || "",
-            mid_image: imagePath ? basename(imagePath) : exitingContent.json_content.mid_image,
-          },
-        };
-        return this.cmsContentRepository.update(id, updateContent_every_space);
-
-        
       case PageType.HOME_PAGE_CONTENT_MEET_US:
-        const updateContent_meet_us: Partial<CmsContent> = {
-          json_content: {
-            top_title: updateCmsContentDto?.json_content?.top_title || "",
-            top_description: updateCmsContentDto?.json_content?.top_description || "",
-            mid_sub_title: updateCmsContentDto?.json_content?.mid_sub_title || "",
-            mid_sub_description: updateCmsContentDto?.json_content?.mid_sub_description || "",
-            mid_image: imagePath ? basename(imagePath) : exitingContent.json_content.mid_image,
-          },
-        };
-        return this.cmsContentRepository.update(id, updateContent_meet_us);
-
-        
       case PageType.CREATING_THE_HOME_OF_YOUR_DREAMS:
-        const updateContentImage: Partial<CmsContent> = {
-          json_content: {
-            top_title: updateCmsContentDto?.json_content?.top_title || "",
-            top_description: updateCmsContentDto?.json_content?.top_description || "",
-            mid_sub_title: updateCmsContentDto?.json_content?.mid_sub_title || "",
-            mid_sub_description: updateCmsContentDto?.json_content?.mid_sub_description || "",
-            mid_image: imagePath ? basename(imagePath) : exitingContent.json_content.mid_image,
-          },
-        };
-        return this.cmsContentRepository.update(id, updateContentImage);
-
       case PageType.CREATING_THE_HOME_OF_YOUR_DREAMS_2:
-        const updateContent2: Partial<CmsContent> = {
+        const updateContentText: Partial<CmsContent> = {
           json_content: {
             top_title: updateCmsContentDto?.json_content?.top_title || "",
             top_description: updateCmsContentDto?.json_content?.top_description || "",
@@ -210,12 +116,14 @@ export class CmsContentService {
             mid_image: imagePath ? basename(imagePath) : exitingContent.json_content.mid_image,
           },
         };
-        return this.cmsContentRepository.update(id, updateContent2);
-
-
+        return this.cmsContentRepository.update(id, updateContentText);
 
       case PageType.TEAM:
-        const updateContentTeam: Partial<CmsContent> = {
+      case PageType.FAQS:
+      case PageType.HOME_PAGE_CONTENT:
+      case PageType.HOME_PAGE_CONTENT_WHAT_WE_ARE:
+      case PageType.HOME_PAGE_CONTENT_HOW_WE_WORK:
+        const updateContentStandard: Partial<CmsContent> = {
           json_content: {
             title: updateCmsContentDto?.title || "",
             description: updateCmsContentDto?.description || "",
@@ -223,170 +131,155 @@ export class CmsContentService {
             image: imagePath ? basename(imagePath) : exitingContent.json_content.image,
           },
         };
-        console.log('updateContentTeam:', updateContentTeam);
-
-        return this.cmsContentRepository.update(id, updateContentTeam);
-
-        case PageType.FAQS:
-        const updateContentFaqs: Partial<CmsContent> = {
-          json_content: {
-            title: updateCmsContentDto?.title || "",
-            description: updateCmsContentDto?.description || "",
-            designation: updateCmsContentDto?.designation || "",
-            image: imagePath ? basename(imagePath) : exitingContent.json_content.image,
-          },
-        };
-        console.log('updateContentFaqs:', updateContentFaqs);
-        return this.cmsContentRepository.update(id, updateContentFaqs);
-
-
-        case PageType.HOME_PAGE_CONTENT:
-          const updateContentHomePage: Partial<CmsContent> = {
-            json_content: {
-              title: updateCmsContentDto?.title || "",
-              description: updateCmsContentDto?.description || "",
-              designation: updateCmsContentDto?.designation || "",
-              image: imagePath ? basename(imagePath) : exitingContent.json_content.image,
-            },
-          };
-          console.log('updateContentHomePage:', updateContentHomePage);
-          return this.cmsContentRepository.update(id, updateContentHomePage);
-
-
-          
-        case PageType.HOME_PAGE_CONTENT_WHAT_WE_ARE:
-          const updateContentHomePage_what_we_are: Partial<CmsContent> = {
-            json_content: {
-              title: updateCmsContentDto?.title || "",
-              description: updateCmsContentDto?.description || "",
-              designation: updateCmsContentDto?.designation || "",
-              image: imagePath ? basename(imagePath) : exitingContent.json_content.image,
-            },
-          };
-          console.log('updateContentHomePage_what_we_are:', updateContentHomePage_what_we_are);
-          return this.cmsContentRepository.update(id, updateContentHomePage_what_we_are);
-
-            
-        case PageType.HOME_PAGE_CONTENT_HOW_WE_WORK:
-          const updateContentHomePage_how_we_work: Partial<CmsContent> = {
-            json_content: {
-              title: updateCmsContentDto?.title || "",
-              description: updateCmsContentDto?.description || "",
-              designation: updateCmsContentDto?.designation || "",
-              image: imagePath ? basename(imagePath) : exitingContent.json_content.image,
-            },
-          };
-          console.log('updateContentHomePage_how_we_work:', updateContentHomePage_how_we_work);
-          return this.cmsContentRepository.update(id, updateContentHomePage_how_we_work);
+        return this.cmsContentRepository.update(id, updateContentStandard);
        
       default:
         return this.update(id, updateCmsContentDto);
     }
-
-
-}
-
-async updateJsonContentChildImage(id: number, updateCmsContentDto: UpdateJsonContentChildImageDto, imagePath: string) {
-  // Fetch the existing content from the database
-  const existingContent = await this.cmsContentRepository.findOne({ where: { id } });
-  if (!existingContent) {
-    console.error('Content not found for id:', id);
-    return null;
   }
 
-  // Parse the existing json_content
-  const jsonContent = existingContent.json_content;
-  if (!jsonContent || !Array.isArray(jsonContent)) {
-    console.error('Invalid json_content format:', jsonContent);
-    return null;
-  }
+  async updateJsonContentChildImage(id: number, updateCmsContentDto: UpdateJsonContentChildImageDto, imagePath: string) {
+    const existingContent = await this.cmsContentRepository.findOne({ where: { id } });
+    if (!existingContent) return null;
 
-  // Update the specific item in the json_content array
-  const itemIndex = updateCmsContentDto?.item_index;
-  if (itemIndex === undefined || itemIndex < 0 || itemIndex >= jsonContent.length) {
-    console.error('Invalid item_index:', itemIndex);
-    return null;
-  }
+    const jsonContent = existingContent.json_content;
+    if (!jsonContent || !Array.isArray(jsonContent)) return null;
 
-  jsonContent[itemIndex].title = updateCmsContentDto?.title || '';
-  jsonContent[itemIndex].description = updateCmsContentDto?.description || '';
+    const itemIndex = updateCmsContentDto?.item_index;
+    if (itemIndex === undefined || itemIndex < 0 || itemIndex >= jsonContent.length) return null;
 
-  //designation for team page
-  if(jsonContent[itemIndex].designation) {
-    jsonContent[itemIndex].designation = updateCmsContentDto?.designation || '';
-  }
+    jsonContent[itemIndex].title = updateCmsContentDto?.title || '';
+    jsonContent[itemIndex].description = updateCmsContentDto?.description || '';
 
-  if (imagePath) {
-    jsonContent[itemIndex].image = basename(imagePath);
-  }
-
-  // Prepare the update content
-  const updateContent: Partial<CmsContent> = {
-    json_content: jsonContent,
-  };
-
-  // Perform the update
-  try {
-    const result = await this.cmsContentRepository.update(id, updateContent);
-    if (result.affected === 0) {
-      console.error('Update failed, no rows affected');
-      return null;
+    if(jsonContent[itemIndex].designation) {
+      jsonContent[itemIndex].designation = updateCmsContentDto?.designation || '';
     }
-    return result;
-  } catch (error) {
-    console.error('Error updating content:', error);
-    throw error;
-  }
-}
 
-async updateJsonContentHomepageBanner(id: number, updateCmsContentDto: any, topIconPath: string, bannerImagePath: string) {
- 
-  // Fetch the existing content from the database
+    if (imagePath) {
+      jsonContent[itemIndex].image = basename(imagePath);
+    }
+
+    const updateContent: Partial<CmsContent> = { json_content: jsonContent };
+
+    try {
+      const result = await this.cmsContentRepository.update(id, updateContent);
+      if (result.affected === 0) return null;
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // 🌟 REWRITTEN TO SUPPORT ADD, UPDATE, AND DELETE ACTIONS FOR DYNAMIC CAROUSEL
+ // 🌟 REWRITTEN TO SUPPORT REORDER, TOGGLE, ADD, UPDATE, AND DELETE
+ async updateJsonContentHomepageBanner(id: number, updateCmsContentDto: any, topIconPath: string, bannerImagePath: string) {
   const existingContent = await this.cmsContentRepository.findOne({ where: { id } });
   if (!existingContent) {
     throw new BadRequestException(`Content not found for id: ${id}`);
   }
 
-  // Parse the existing json_content
-  const jsonContent = existingContent.json_content;
-  if (!jsonContent || !Array.isArray(jsonContent)) {
-    throw new BadRequestException('Invalid json_content format:', jsonContent);
+  const jsonContent = Array.isArray(existingContent.json_content) ? existingContent.json_content : [];
+  const action = updateCmsContentDto?.action || 'update';
+  const itemIndex = parseInt(updateCmsContentDto?.item_index, 10);
+
+  if (action === 'add') {
+    const newItem = {
+      title: updateCmsContentDto?.title || '',
+      sub_title: updateCmsContentDto?.sub_title || '',
+      top_slogan: updateCmsContentDto?.top_slogan || '',
+      description: updateCmsContentDto?.description || '',
+      button_text: updateCmsContentDto?.button_text || '',
+      button_link: updateCmsContentDto?.button_link || '',
+      top_icon: topIconPath ? basename(topIconPath) : null,
+      banner_image: bannerImagePath ? basename(bannerImagePath) : null,
+      is_active: updateCmsContentDto?.is_active !== 'false', // Default to true
+    };
+    jsonContent.push(newItem);
+
+  } else if (action === 'delete') {
+    if (isNaN(itemIndex) || itemIndex < 0 || itemIndex >= jsonContent.length) {
+      throw new BadRequestException(`Invalid item_index for deletion`);
+    }
+    jsonContent.splice(itemIndex, 1);
+
+  } else if (action === 'reorder') {
+    // 🌟 NEW: Handle Drag and Drop array splicing
+    const fromIndex = parseInt(updateCmsContentDto?.from_index, 10);
+    const toIndex = parseInt(updateCmsContentDto?.to_index, 10);
+    
+    if (!isNaN(fromIndex) && !isNaN(toIndex) && fromIndex >= 0 && toIndex >= 0 && fromIndex < jsonContent.length && toIndex < jsonContent.length) {
+      const [movedItem] = jsonContent.splice(fromIndex, 1);
+      jsonContent.splice(toIndex, 0, movedItem);
+    }
+
+  } else if (action === 'toggle_active') {
+    // 🌟 NEW: Quick toggle on/off without opening the edit modal
+    if (isNaN(itemIndex) || itemIndex < 0 || itemIndex >= jsonContent.length) {
+      throw new BadRequestException(`Invalid item_index for toggle`);
+    }
+    jsonContent[itemIndex].is_active = updateCmsContentDto?.is_active === 'true';
+
+  } else {
+    // UPDATE EXISTING
+    if (isNaN(itemIndex) || itemIndex < 0 || itemIndex >= jsonContent.length) {
+      throw new BadRequestException(`Invalid item_index for update`);
+    }
+    
+    jsonContent[itemIndex].title = updateCmsContentDto?.title || '';
+    jsonContent[itemIndex].sub_title = updateCmsContentDto?.sub_title || '';
+    jsonContent[itemIndex].top_slogan = updateCmsContentDto?.top_slogan || '';
+    jsonContent[itemIndex].description = updateCmsContentDto?.description || '';
+    jsonContent[itemIndex].button_text = updateCmsContentDto?.button_text || '';
+    jsonContent[itemIndex].button_link = updateCmsContentDto?.button_link || '';
+    jsonContent[itemIndex].is_active = updateCmsContentDto?.is_active !== 'false';
+
+    if (topIconPath) jsonContent[itemIndex].top_icon = basename(topIconPath);
+    if (bannerImagePath) jsonContent[itemIndex].banner_image = basename(bannerImagePath);
   }
 
-  // Update the specific item in the json_content array
-  const itemIndex = updateCmsContentDto?.item_index;
-  if (itemIndex === undefined || itemIndex < 0 || itemIndex >= jsonContent.length) {
-    throw new BadRequestException(`Invalid item_index: ${itemIndex}`);
-  }
+  const updateContent: Partial<CmsContent> = { json_content: jsonContent };
 
-  jsonContent[itemIndex].title = updateCmsContentDto?.title || '';
-  jsonContent[itemIndex].sub_title = updateCmsContentDto?.sub_title || '';
-  jsonContent[itemIndex].top_slogan = updateCmsContentDto?.top_slogan || '';
-
-  if (topIconPath) {
-    jsonContent[itemIndex].top_icon = basename(topIconPath);
-  }
-
-  if (bannerImagePath) {
-    jsonContent[itemIndex].banner_image = basename(bannerImagePath);
-  }
-
-  // Prepare the update content
-  const updateContent: Partial<CmsContent> = {
-    json_content: jsonContent,
-  };
-
-  // Perform the update
   try {
     const result = await this.cmsContentRepository.update(id, updateContent);
-    if (result.affected === 0) {
-      throw new BadRequestException('Update failed, no rows affected');
-    }
+    if (result.affected === 0) throw new BadRequestException('Update failed');
     return result;
   } catch (error) {
-    throw new BadRequestException('Error updating content:', error);
+    throw new BadRequestException('Error updating content: ' + error.message);
   }
- 
+}
+
+async updateEstimateCards(id: number, dto: any, imagePath: string) {
+  const existingContent = await this.cmsContentRepository.findOne({ where: { id } });
+  if (!existingContent) throw new BadRequestException(`Content not found`);
+
+  const jsonContent = Array.isArray(existingContent.json_content) ? existingContent.json_content : [];
+  const action = dto?.action || 'update';
+  const itemIndex = parseInt(dto?.item_index, 10);
+
+  if (action === 'add') {
+    jsonContent.push({
+      title: dto?.title || '',
+      link: dto?.link || '/estimator-for-home',
+      image: imagePath ? basename(imagePath) : null,
+      is_active: dto?.is_active !== 'false'
+    });
+  } else if (action === 'delete') {
+    jsonContent.splice(itemIndex, 1);
+  } else if (action === 'reorder') {
+    const fromIndex = parseInt(dto?.from_index, 10);
+    const toIndex = parseInt(dto?.to_index, 10);
+    const [movedItem] = jsonContent.splice(fromIndex, 1);
+    jsonContent.splice(toIndex, 0, movedItem);
+  } else if (action === 'toggle_active') {
+    jsonContent[itemIndex].is_active = dto?.is_active === 'true';
+  } else {
+    jsonContent[itemIndex].title = dto?.title || '';
+    jsonContent[itemIndex].link = dto?.link || '/estimator-for-home';
+    jsonContent[itemIndex].is_active = dto?.is_active !== 'false';
+    if (imagePath) jsonContent[itemIndex].image = basename(imagePath);
+  }
+
+  return this.cmsContentRepository.update(id, { json_content: jsonContent });
 }
 
   remove(id: number) {

@@ -1,12 +1,13 @@
 // src/estimater/estimater.controller.ts
 
-import { Controller, Get, Post, Body, Param, Patch, Delete, Res, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, Res, HttpException, HttpStatus, UseGuards } from '@nestjs/common';
 import { EstimaterService } from './estimater.service';
 import { CreateEstimaterDto } from './dto/create-estimater.dto';
 import { UpdateEstimaterDto } from './dto/update-estimater.dto';
 import { Estimater } from 'src/entities/estimater.entity';
 import * as ExcelJS from 'exceljs';
 import { Response } from 'express';
+import { AuthGuard } from '@nestjs/passport';
 
 
 @Controller('estimater')
@@ -18,11 +19,13 @@ export class EstimaterController {
     return this.estimaterService.create(createEstimaterDto);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Get()
   findAll(): Promise<Estimater[]> {
     return this.estimaterService.findAll();
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Get('export')
   async exportToExcel(@Res() res: Response) {
     try {

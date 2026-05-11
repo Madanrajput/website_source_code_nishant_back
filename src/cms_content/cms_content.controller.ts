@@ -37,7 +37,7 @@ export class CmsContentController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateCmsContentDto: UpdateCmsContentDto) {
     return this.cmsContentService.update(+id, updateCmsContentDto);
-}
+  }
 
   @UseGuards(AuthGuard('jwt'))
   @Patch('update-with-image/:id')
@@ -71,13 +71,25 @@ export class CmsContentController {
   ]))
   async uploadFile(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateCmsContentDto: UpdateJsonContentChildImageDto,
+    @Body() updateCmsContentDto: any, // Changed to any to accept dynamic action & new fields
     @UploadedFiles() files: { banner_image?: Express.Multer.File[], top_icon?: Express.Multer.File[] },
   ) {
     const topIconPath = files.top_icon ? files.top_icon[0].filename : null;
     const bannerImagePath = files.banner_image ? files.banner_image[0].filename : null;
 
     return this.cmsContentService.updateJsonContentHomepageBanner(id, updateCmsContentDto, topIconPath, bannerImagePath);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('update-estimate-cards/:id')
+  @UseInterceptors(FileInterceptor('image'))
+  async updateEstimateCards(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateCmsContentDto: any,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const imagePath = file ? file.filename : null;
+    return this.cmsContentService.updateEstimateCards(id, updateCmsContentDto, imagePath);
   }
 
   @UseGuards(AuthGuard('jwt'))

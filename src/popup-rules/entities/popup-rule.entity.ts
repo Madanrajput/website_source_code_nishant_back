@@ -29,6 +29,13 @@ export class PopupRule {
     scroll_percentage: number;
 
     // --- Customization ---
+    // @Column({ type: 'varchar', length: 255, nullable: true })
+    // image: string;
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    desktop_image: string; 
+
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    mobile_image: string;
     @Column({ type: 'varchar', length: 255, default: "Lets Connect" })
     heading: string;
 
