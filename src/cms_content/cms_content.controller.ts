@@ -63,21 +63,24 @@ export class CmsContentController {
     return this.cmsContentService.updateJsonContentChildImage(+id, updateCmsContentDto, imagePath);
   }
 
+  // 🌟 UPDATED: Intercept the new mobile_banner_image field
   @UseGuards(AuthGuard('jwt'))
   @Patch('update-json-homepage-banner/:id')
   @UseInterceptors(FileFieldsInterceptor([
     { name: 'top_icon', maxCount: 1 },
     { name: 'banner_image', maxCount: 1 },
+    { name: 'mobile_banner_image', maxCount: 1 },
   ]))
   async uploadFile(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateCmsContentDto: any, // Changed to any to accept dynamic action & new fields
-    @UploadedFiles() files: { banner_image?: Express.Multer.File[], top_icon?: Express.Multer.File[] },
+    @Body() updateCmsContentDto: any,
+    @UploadedFiles() files: { banner_image?: Express.Multer.File[], top_icon?: Express.Multer.File[], mobile_banner_image?: Express.Multer.File[] },
   ) {
     const topIconPath = files.top_icon ? files.top_icon[0].filename : null;
     const bannerImagePath = files.banner_image ? files.banner_image[0].filename : null;
+    const mobileBannerImagePath = files.mobile_banner_image ? files.mobile_banner_image[0].filename : null;
 
-    return this.cmsContentService.updateJsonContentHomepageBanner(id, updateCmsContentDto, topIconPath, bannerImagePath);
+    return this.cmsContentService.updateJsonContentHomepageBanner(id, updateCmsContentDto, topIconPath, bannerImagePath, mobileBannerImagePath);
   }
 
   @UseGuards(AuthGuard('jwt'))

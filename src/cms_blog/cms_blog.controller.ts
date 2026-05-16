@@ -10,6 +10,20 @@ import { ensureCmsDeletePermission } from '../auth/utils/cms-access.util';
 export class CmsBlogController {
   constructor(private readonly cmsBlogService: CmsBlogService) {}
 
+  // --- NEW: AUTO-SAVE ENDPOINT ---
+  @UseGuards(AuthGuard('jwt'))
+  @Post('auto-save')
+  @UseInterceptors(FileInterceptor('image'))
+  async autoSave(
+    @Body() autoSaveDto: any,
+    @UploadedFile() file: Express.Multer.File,
+    @Request() req,
+  ) {
+    const image = file ? file.filename : null;
+    return this.cmsBlogService.autoSave(autoSaveDto, image, req.user);
+  }
+  // -------------------------------
+
   @UseGuards(AuthGuard('jwt'))
   @Post()
   @UseInterceptors(FileInterceptor('image'))
@@ -38,7 +52,6 @@ export class CmsBlogController {
     return this.cmsBlogService.findAllRouteList();
   }
 
-  // --- NEW ROUTES FIXING THE 404 ERROR ---
   @UseGuards(AuthGuard('jwt'))
   @Get(':id/versions')
   async getVersions(@Param('id', ParseIntPipe) id: number) {
@@ -54,7 +67,6 @@ export class CmsBlogController {
   ) {
     return this.cmsBlogService.restoreVersion(id, versionId, req.user);
   }
-  // ---------------------------------------
 
   @Get(':id')
   findOne(@Param('id') id: string) {

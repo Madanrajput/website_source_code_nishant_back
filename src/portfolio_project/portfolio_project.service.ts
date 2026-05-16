@@ -50,6 +50,7 @@ export class PortfolioProjectService {
       take: limit,
       skip: (page - 1) * limit,
       where: { type },
+      order: { id: 'DESC' },
     });
 
     return projects.map(project => ({
@@ -68,6 +69,7 @@ export class PortfolioProjectService {
       take: limit,
       skip: (page - 1) * limit,
       where: { type, status: true },
+      order: { id: 'DESC' }
     });
 
     const totalPages = Math.ceil(total / limit);

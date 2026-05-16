@@ -78,6 +78,7 @@ export class CmsContentService {
           jsonContent.forEach((content) => {
             content.top_icon = content.top_icon ? `${baseUrl}${content.top_icon}` : null;
             content.banner_image = content.banner_image ? `${baseUrl}${content.banner_image}` : null;
+            content.mobile_banner_image = content.mobile_banner_image ? `${baseUrl}${content.mobile_banner_image}` : null;
           });
           break;
         case PageType.TEAM:
@@ -170,81 +171,80 @@ export class CmsContentService {
     }
   }
 
-  // 🌟 REWRITTEN TO SUPPORT ADD, UPDATE, AND DELETE ACTIONS FOR DYNAMIC CAROUSEL
- // 🌟 REWRITTEN TO SUPPORT REORDER, TOGGLE, ADD, UPDATE, AND DELETE
- async updateJsonContentHomepageBanner(id: number, updateCmsContentDto: any, topIconPath: string, bannerImagePath: string) {
+// 🌟 UPDATED: Accepting and saving mobileBannerImagePath
+async updateJsonContentHomepageBanner(id: number, updateCmsContentDto: any, topIconPath: string, bannerImagePath: string, mobileBannerImagePath: string) {
   const existingContent = await this.cmsContentRepository.findOne({ where: { id } });
   if (!existingContent) {
     throw new BadRequestException(`Content not found for id: ${id}`);
   }
 
-  const jsonContent = Array.isArray(existingContent.json_content) ? existingContent.json_content : [];
+  let jsonContent = existingContent.json_content;
+  if (!jsonContent || !Array.isArray(jsonContent)) {
+    jsonContent = [];
+  }
+
   const action = updateCmsContentDto?.action || 'update';
   const itemIndex = parseInt(updateCmsContentDto?.item_index, 10);
 
-  if (action === 'add') {
-    const newItem = {
-      title: updateCmsContentDto?.title || '',
-      sub_title: updateCmsContentDto?.sub_title || '',
-      top_slogan: updateCmsContentDto?.top_slogan || '',
-      description: updateCmsContentDto?.description || '',
-      button_text: updateCmsContentDto?.button_text || '',
-      button_link: updateCmsContentDto?.button_link || '',
-      top_icon: topIconPath ? basename(topIconPath) : null,
-      banner_image: bannerImagePath ? basename(bannerImagePath) : null,
-      is_active: updateCmsContentDto?.is_active !== 'false', // Default to true
-    };
-    jsonContent.push(newItem);
-
-  } else if (action === 'delete') {
-    if (isNaN(itemIndex) || itemIndex < 0 || itemIndex >= jsonContent.length) {
-      throw new BadRequestException(`Invalid item_index for deletion`);
-    }
-    jsonContent.splice(itemIndex, 1);
-
-  } else if (action === 'reorder') {
-    // 🌟 NEW: Handle Drag and Drop array splicing
+  if (action === 'reorder') {
     const fromIndex = parseInt(updateCmsContentDto?.from_index, 10);
     const toIndex = parseInt(updateCmsContentDto?.to_index, 10);
-    
-    if (!isNaN(fromIndex) && !isNaN(toIndex) && fromIndex >= 0 && toIndex >= 0 && fromIndex < jsonContent.length && toIndex < jsonContent.length) {
+    if (fromIndex >= 0 && fromIndex < jsonContent.length && toIndex >= 0 && toIndex < jsonContent.length) {
       const [movedItem] = jsonContent.splice(fromIndex, 1);
       jsonContent.splice(toIndex, 0, movedItem);
     }
-
-  } else if (action === 'toggle_active') {
-    // 🌟 NEW: Quick toggle on/off without opening the edit modal
-    if (isNaN(itemIndex) || itemIndex < 0 || itemIndex >= jsonContent.length) {
-      throw new BadRequestException(`Invalid item_index for toggle`);
+  } 
+  else if (action === 'delete') {
+    if (itemIndex >= 0 && itemIndex < jsonContent.length) {
+      jsonContent.splice(itemIndex, 1);
     }
-    jsonContent[itemIndex].is_active = updateCmsContentDto?.is_active === 'true';
-
-  } else {
-    // UPDATE EXISTING
-    if (isNaN(itemIndex) || itemIndex < 0 || itemIndex >= jsonContent.length) {
-      throw new BadRequestException(`Invalid item_index for update`);
+  } 
+  else if (action === 'toggle_active') {
+    if (itemIndex >= 0 && itemIndex < jsonContent.length) {
+      jsonContent[itemIndex].is_active = updateCmsContentDto.is_active === 'true';
     }
-    
-    jsonContent[itemIndex].title = updateCmsContentDto?.title || '';
-    jsonContent[itemIndex].sub_title = updateCmsContentDto?.sub_title || '';
-    jsonContent[itemIndex].top_slogan = updateCmsContentDto?.top_slogan || '';
-    jsonContent[itemIndex].description = updateCmsContentDto?.description || '';
-    jsonContent[itemIndex].button_text = updateCmsContentDto?.button_text || '';
-    jsonContent[itemIndex].button_link = updateCmsContentDto?.button_link || '';
-    jsonContent[itemIndex].is_active = updateCmsContentDto?.is_active !== 'false';
+  } 
+  else if (action === 'add' || action === 'update') {
+    const slideData: any = {};
+    slideData.title = updateCmsContentDto?.title || '';
+    slideData.sub_title = updateCmsContentDto?.sub_title || '';
+    slideData.top_slogan = updateCmsContentDto?.top_slogan || '';
+    slideData.description = updateCmsContentDto?.description || '';
+    slideData.button_text = updateCmsContentDto?.button_text || '';
+    slideData.button_link = updateCmsContentDto?.button_link || '';
+    slideData.text_color = updateCmsContentDto?.text_color || '#ffffff';
+    slideData.is_active = updateCmsContentDto?.is_active !== 'false';
 
-    if (topIconPath) jsonContent[itemIndex].top_icon = basename(topIconPath);
-    if (bannerImagePath) jsonContent[itemIndex].banner_image = basename(bannerImagePath);
+    if (action === 'add') {
+      if (topIconPath) slideData.top_icon = basename(topIconPath);
+      if (bannerImagePath) slideData.banner_image = basename(bannerImagePath);
+      if (mobileBannerImagePath) slideData.mobile_banner_image = basename(mobileBannerImagePath); // 🌟 Added
+      jsonContent.push(slideData);
+    } 
+    else if (action === 'update') {
+      if (itemIndex >= 0 && itemIndex < jsonContent.length) {
+        jsonContent[itemIndex] = { ...jsonContent[itemIndex], ...slideData };
+        if (topIconPath) jsonContent[itemIndex].top_icon = basename(topIconPath);
+        if (bannerImagePath) jsonContent[itemIndex].banner_image = basename(bannerImagePath);
+        if (mobileBannerImagePath) jsonContent[itemIndex].mobile_banner_image = basename(mobileBannerImagePath); // 🌟 Added
+      } else {
+        throw new BadRequestException(`Invalid item_index: ${itemIndex}`);
+      }
+    }
   }
 
-  const updateContent: Partial<CmsContent> = { json_content: jsonContent };
+  const updateContent: Partial<CmsContent> = {
+    json_content: jsonContent,
+  };
 
   try {
     const result = await this.cmsContentRepository.update(id, updateContent);
-    if (result.affected === 0) throw new BadRequestException('Update failed');
+    if (result.affected === 0) {
+      throw new BadRequestException('Update failed, no rows affected');
+    }
     return result;
   } catch (error) {
-    throw new BadRequestException('Error updating content: ' + error.message);
+    throw new BadRequestException('Error updating content:', error);
   }
 }
 

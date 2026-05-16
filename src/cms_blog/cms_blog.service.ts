@@ -26,6 +26,89 @@ export class CmsBlogService {
     return { ...blog, image: imagePath };
   }
 
+  // --- REUSABLE BACKUP FUNCTION ---
+  private async createBackupVersion(blog: CmsBlog) {
+    const backup = this.cmsBlogVersionRepository.create({
+      blogId: blog.id,
+      title: blog.title || 'Untitled',
+      writer_name: blog.writer_name || '',
+      description: blog.description || '',
+      image: blog.image,
+      image_alt: blog.image_alt,
+      status: blog.status,
+      seo_content: blog.seo_content,
+      published_on: blog.published_on
+    });
+    await this.cmsBlogVersionRepository.save(backup);
+
+    // Enforce Max 3 Backups
+    const versions = await this.cmsBlogVersionRepository.find({
+        where: { blogId: blog.id },
+        order: { savedAt: 'ASC' } // Oldest first
+    });
+    
+    if (versions.length > 3) {
+        const versionsToDelete = versions.slice(0, versions.length - 3);
+        await this.cmsBlogVersionRepository.remove(versionsToDelete);
+    }
+  }
+
+  // --- SMART AUTO-SAVE LOGIC ---
+  async autoSave(autoSaveDto: any, image: string, user?: any) {
+    const { id, ...data } = autoSaveDto;
+    let blogId = id ? Number(id) : null;
+    let blog = null;
+
+    if (blogId) {
+        blog = await this.cmsBlogRepository.findOneBy({ id: blogId });
+    }
+
+    if (!blog) {
+        // 1. Create a brand new draft so progress is NEVER lost on new blogs
+        const seo_content = {
+          slug: "", canonical_url: "", meta_title: "", meta_description: "",
+          meta_keywords: "", custom_code: "", meta_robots_index: "index",
+          meta_robots_follow: "follow", include_in_sitemap: true,
+          sitemap_change_frequency: "weekly", sitemap_priority: "0.64"
+        };
+
+        blog = this.cmsBlogRepository.create({
+            ...data,
+            title: data.title || 'Untitled Draft',
+            description: data.description || '',
+            writer_name: data.writer_name || 'Admin',
+            status: CmsStatus.Draft, // Hardcode as draft for unsaved new entries
+            image: image || null,
+            seo_content,
+        });
+        await this.cmsBlogRepository.save(blog);
+        return this.formatBlog(blog);
+    } else {
+        // 2. Update existing blog draft
+        const lastVersion = await this.cmsBlogVersionRepository.findOne({
+            where: { blogId: blog.id },
+            order: { savedAt: 'DESC' }
+        });
+        
+        // Prevent background auto-saves from eating up all 3 backup slots instantly.
+        // It will only create a new historic version if 5 minutes have passed.
+        const FIVE_MINUTES = 5 * 60 * 1000;
+        const now = new Date().getTime();
+        const lastSavedAt = lastVersion ? new Date(lastVersion.savedAt).getTime() : 0;
+        
+        if (now - lastSavedAt > FIVE_MINUTES) {
+            await this.createBackupVersion(blog);
+        }
+
+        const updateData: any = { ...data };
+        if (image) updateData.image = image;
+
+        await this.cmsBlogRepository.update(blog.id, updateData);
+        const updatedBlog = await this.cmsBlogRepository.findOneBy({ id: blog.id });
+        return this.formatBlog(updatedBlog);
+    }
+  }
+
   async create(createCmsBlogDto: CreateCmsBlogDto, image: string, user?: any) {
     if (image && !createCmsBlogDto?.image_alt?.trim()) {
       throw new BadRequestException('Featured image alt text is required');
@@ -94,32 +177,8 @@ export class CmsBlogService {
     const existingBlog = await this.cmsBlogRepository.findOneBy({ id });
     if (!existingBlog) throw new NotFoundException(`Blog with id ${id} not found`);
 
-    // --- Create Backup Before Updating ---
-    const backup = this.cmsBlogVersionRepository.create({
-      blogId: existingBlog.id,
-      title: existingBlog.title,
-      writer_name: existingBlog.writer_name,
-      description: existingBlog.description,
-      image: existingBlog.image,
-      image_alt: existingBlog.image_alt,
-      status: existingBlog.status,
-      seo_content: existingBlog.seo_content,
-      published_on: existingBlog.published_on
-    });
-    await this.cmsBlogVersionRepository.save(backup);
-
-    // --- Enforce Max 3 Backups ---
-    const versions = await this.cmsBlogVersionRepository.find({
-        where: { blogId: existingBlog.id },
-        order: { savedAt: 'ASC' } // Oldest first
-    });
-    
-    if (versions.length > 3) {
-        // Remove the oldest ones so only 3 remain
-        const versionsToDelete = versions.slice(0, versions.length - 3);
-        await this.cmsBlogVersionRepository.remove(versionsToDelete);
-    }
-    // ------------------------------------
+    // Manual Updates ALWAYS trigger a strict backup history
+    await this.createBackupVersion(existingBlog);
 
     const resolvedImageAlt = updateCmsBlogDto?.image_alt?.trim() || existingBlog.image_alt;
 
@@ -158,11 +217,10 @@ export class CmsBlogService {
     return { message: `Blog with id ${id} has been removed` };
   }
 
-  // --- Versioning Methods ---
   async getVersions(blogId: number) {
     return await this.cmsBlogVersionRepository.find({
       where: { blogId },
-      order: { savedAt: 'DESC' }, // Return newest first to the frontend
+      order: { savedAt: 'DESC' }, 
     });
   }
 
@@ -173,7 +231,6 @@ export class CmsBlogService {
 
     if (!version) throw new NotFoundException(`Version ${versionId} not found`);
 
-    // We reuse the update method so the current state is also safely backed up
     const restoreData = {
         title: version.title,
         description: version.description,
